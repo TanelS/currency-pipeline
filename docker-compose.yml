@@ -1,0 +1,27 @@
+services:
+
+  spark:
+    build: .                          # uses Dockerfile in project root
+    environment:
+      - SPARK_MODE=master
+    volumes:
+      - .:/app                        # mounts entire project into /app
+    working_dir: /app
+    ports:
+      - "4040:4040"                   # Spark UI — open http://localhost:4040 while jobs run
+    platform: linux/amd64             # works on both Intel and Apple Silicon (M1/M2)
+    env_file:
+      - .env
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: currencies
+      POSTGRES_USER: ${DBT_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${DBT_POSTGRES_PASSWORD}
+    ports:
+      - "5441:5432"                   # 5441 on host to avoid conflict with local PostgreSQL
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data    # bind mount — visible in DataGrip/pgAdmin
+    env_file:
+      - .env
