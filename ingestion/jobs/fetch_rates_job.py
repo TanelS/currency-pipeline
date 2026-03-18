@@ -6,7 +6,7 @@ logger = logging.getLogger("Currency_data_fetch")
 
 
 def get_rates(base_currency: str) -> dict | None:
-    params = {"base": base_currency} if base_currency != "USD" else {}
+    params = {"base": base_currency} if base_currency else {}
     data = fetch_from_api("latest", params)
 
     if not data:
