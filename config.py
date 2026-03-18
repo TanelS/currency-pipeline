@@ -47,6 +47,7 @@ DATABASE_NAME = config_environment["DB_DATABASE"]
 
 CURRENCYBEACON_API_KEY = config_environment["CURRENCYBEACON_API_KEY"]
 CURRENCYBEACON_API_ROOT = config_environment["CURRENCYBEACON_API_ROOT"]
+RUNNING_LOCAL = config_environment["CURRENCYBEACON_API_ROOT"]
 
 API_V1_STR = config_environment["API_V1_STR"]
 
