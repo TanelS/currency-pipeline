@@ -17,8 +17,8 @@ services:
     image: postgres:16
     environment:
       POSTGRES_DB: currencies
-      POSTGRES_USER: ${DBT_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${DBT_POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5441:5432"                   # 5441 on host to avoid conflict with local PostgreSQL
     volumes:
