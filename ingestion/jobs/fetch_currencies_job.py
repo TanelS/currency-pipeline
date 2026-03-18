@@ -1,6 +1,6 @@
 import logging
 
-from ingestion.io import fetch_from_api
+from utils import fetch_from_api
 
 logger = logging.getLogger("Currency_symbols_fetch")
 
