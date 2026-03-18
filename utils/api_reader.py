@@ -1,5 +1,5 @@
 import logging
-
+from typing import Optional
 import requests
 
 import config
@@ -7,7 +7,7 @@ import config
 logger = logging.getLogger('Currency_raw_data_fetch')
 
 
-def fetch_from_api(endpoint: str, params: dict = None) -> dict | None:
+def fetch_from_api(endpoint: str, params: dict = None) -> Optional[dict]:
     headers = {
         'Accept': 'application/json',
         'Authorization': f'Bearer {config.CURRENCYBEACON_API_KEY}'

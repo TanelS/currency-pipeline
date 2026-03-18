@@ -27,10 +27,9 @@ CURRENCY_SCHEMA = StructType([
 
 def ingest_curr_codes(spark: SparkSession):
     print('Reading raw currency symbols data from API')
-    currency_records = []
     raw_curr_symbols = get_currencies()
 
-    df_read = (spark.createDataFrame(currency_records, CURRENCY_SCHEMA))
+    df_read = spark.createDataFrame(raw_curr_symbols, CURRENCY_SCHEMA)
 
     print('Preview of ingested currency data:')
     df_read.show()  # Call show() separately to display the data

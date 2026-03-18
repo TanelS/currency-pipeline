@@ -4,6 +4,7 @@ services:
     build: .                          # uses Dockerfile in project root
     environment:
       - SPARK_MODE=master
+      - PYTHONPATH=/app
     volumes:
       - .:/app                        # mounts entire project into /app
     working_dir: /app

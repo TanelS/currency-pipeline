@@ -1,11 +1,11 @@
 import logging
-
+from typing import Optional
 from utils import fetch_from_api
 
 logger = logging.getLogger("Currency_data_fetch")
 
 
-def get_rates(base_currency: str) -> dict | None:
+def get_rates(base_currency: str) -> Optional[dict]:
     params = {"base": base_currency} if base_currency else {}
     data = fetch_from_api("latest", params)
 
