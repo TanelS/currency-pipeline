@@ -4,7 +4,8 @@ import config
 
 def get_spark(appname: str):
     builder = (
-        SparkSession.builder.appName("bronze_estonian_addresses")
+        SparkSession.builder
+        .appName(appname)
         .config(
             "spark.sql.extensions",
             "io.delta.sql.DeltaSparkSessionExtension")
