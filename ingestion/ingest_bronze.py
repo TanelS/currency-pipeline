@@ -67,7 +67,14 @@ def ingest_curr_codes(spark: SparkSession):
     out_path = os.path.join(BRONZE_OUT_DIR, "currencies")
     print(f"  Writing Bronze Delta to: {out_path}")
 
-    (df_with_meta.coalesce(1).write.format("delta").mode("overwrite").save(out_path))
+    (
+        df_with_meta
+        .coalesce(1)
+        .write
+        .format("delta")
+        .mode("overwrite")
+        .save(out_path)
+    )
 
     print("  Done. Bronze table written.")
     return df_with_meta
