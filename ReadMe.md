@@ -11,3 +11,12 @@ or
 ```bash
 docker compose run --remove-orphans spark python3 ingestion/ingest_bronze.py
 ```
+
+
+
+To staging
+
+
+```bash
+docker compose run --remove-orphans spark python3 transformation/transform_silver.py
+```
