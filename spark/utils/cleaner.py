@@ -51,33 +51,23 @@ def clean_string(s: Union[str, int, float, None]) -> Union[str, int, float, None
     return s if s else None
 
 # Register the Python function as a UDF
-clean_string_udf = udf(clean_string, StringType()) # <--- Register UDF with expected return type
+clean_string_udf = udf(clean_string, StringType()) # slower than native functions when dealing with large datasets
 
 def clean_df(df: DataFrame, columns: List[str]) -> DataFrame:
     """
-    Cleans the specified columns in a DataFrame by trimming whitespace and replacing empty
-    strings with null values. Optionally applies a user-defined function to clean the column
-    values further.
+    Cleans the specified columns in a given DataFrame by applying string cleaning logic. Empty string values
+    in the specified columns are replaced with `None`, while non-empty values are processed using a
+    custom-defined string cleaning function.
 
-    This function processes the specified columns in the given DataFrame as follows:
-    1. If the DataFrame is empty (row count is zero), it returns the original DataFrame.
-    2. For each column in the provided list of columns, if the column exists in the DataFrame:
-       - Trims leading and trailing whitespace from the column values.
-       - Replaces empty strings with null values.
-       - Applies a user-defined function to clean the column values if applicable.
-
-    Intended for use cases where handling of whitespace and empty strings in data values
-    is required for predefined columns.
-
-    :param df: The input DataFrame to be cleaned.
+    :param df: Input DataFrame to be cleaned.
     :type df: DataFrame
-    :param columns: The list of column names to be processed during cleaning.
+    :param columns: List of column names within the DataFrame that need to be cleaned.
     :type columns: List[str]
-    :return: A DataFrame with specified columns cleaned by replacing empty strings with nulls,
-             trimming whitespace, and applying additional cleaning logic.
+    :return: A DataFrame with the specified columns cleaned. If the DataFrame is empty, returns the
+        original DataFrame.
     :rtype: DataFrame
     """
-    if not df.count() == 0:
+    if df.count() == 0:
         return df
 
     cleaned_df = df
