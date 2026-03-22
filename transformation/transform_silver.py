@@ -13,6 +13,8 @@ from spark.session.builder import get_spark
 from spark.schemas.rate_schema import RATES_SCHEMA
 from spark.schemas.currency_schema import CURRENCY_SCHEMA
 
+from spark.utils.cleaner import clean_string
+
 logger = logging.getLogger('transform-silver')
 
 
