@@ -213,7 +213,7 @@ if __name__ == "__main__":
     spark = get_spark("bronze_currency_rates")
     spark.sparkContext.setLogLevel("WARN")
 
-    # df_addresses = ingest_curr_codes(spark)
+    df_addresses = ingest_curr_codes(spark)
     df_rates = ingest_rates(spark)
 
     spark.stop()
