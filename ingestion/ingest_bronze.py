@@ -101,6 +101,20 @@ def ingest_curr_codes(spark: SparkSession):
 
 
 def ingest_rates(spark: SparkSession):
+    """
+    Ingest currency rates from an external API and store them in a Delta table. This function reads currency symbols from an
+    existing Bronze table, fetches exchange rates for all possible currency pairs from an external API, and writes the data
+    to a new Bronze Delta table, augmenting it with metadata for ingestion timestamp and source identification.
+
+    :param spark: The SparkSession object used to interact with data.
+    :type spark: pyspark.sql.SparkSession
+
+    :return: A DataFrame containing the ingested currency rates with metadata, or None if no rates were ingested or if an
+        error occurred during processing.
+    :rtype: pyspark.sql.DataFrame or None
+
+    :raises Exception: If an error occurs during the write operation to the Delta table.
+    """
     print("Reading currency rates from API")
 
     df_symbols = (
