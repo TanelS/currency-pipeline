@@ -3,15 +3,6 @@ import os
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import (
-    BooleanType,
-    IntegerType,
-    StringType,
-    StructField,
-    StructType,
-    TimestampType,
-    DecimalType,
-)
 
 from decimal import Decimal
 import logging
@@ -19,31 +10,10 @@ from ingestion.jobs import get_currencies, get_rates
 from spark.config.spark_config import BRONZE_OUT_DIR
 from spark.session.builder import get_spark
 
+from spark.schemas.currency_schema import CURRENCY_SCHEMA
+from spark.schemas.rate_schema import RATES_SCHEMA
+
 logger = logging.getLogger('ingest-bronze')
-
-CURRENCY_SCHEMA = StructType(
-    [
-        StructField("id", IntegerType(), True),
-        StructField("name", StringType(), True),
-        StructField("short_code", StringType(), True),
-        StructField("code", StringType(), True),
-        StructField("precision", IntegerType(), True),
-        StructField("subunit", IntegerType(), True),
-        StructField("symbol", StringType(), True),  # TODO rename downstream to curr_symbol
-        StructField("symbol_first", BooleanType(), True),
-        StructField("decimal_mark", StringType(), True),
-        StructField("thousands_separator", StringType(), True),
-    ]
-)
-
-RATES_SCHEMA = StructType(
-    [
-        StructField("curr_base", StringType(), nullable=True),
-        StructField("currency", StringType(), nullable=True),
-        StructField("rate_date", TimestampType(), nullable=True),
-        StructField("rate", DecimalType(20, 10), nullable=True),
-    ]
-)
 
 
 def ingest_curr_codes(spark: SparkSession):
