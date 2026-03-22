@@ -3,12 +3,20 @@ import os
 
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    BooleanType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from decimal import Decimal
 import logging
 from ingestion.jobs import get_currencies, get_rates
 from spark.config.spark_config import BRONZE_OUT_DIR
 from spark.session.builder import get_spark
+from spark.utils.cleaner import clean_string_df
 
 from spark.schemas.rate_schema import RATES_SCHEMA
 from spark.schemas.currency_schema import CURRENCY_SCHEMA
@@ -20,14 +28,25 @@ logger = logging.getLogger('transform-silver')
 
 
 def transform_rates_staging(spark: SparkSession):
+
+
     silver_path_currencies = os.path.join(BRONZE_OUT_DIR, 'currencies')
     silver_path_rates = os.path.join(BRONZE_OUT_DIR, 'rates')
     print(f'Reading Silver currencies from: {silver_path_currencies}')
 
     df_curr = spark.read.format('delta').load(silver_path_currencies)
+    curr_string_cols = [f.name for f in df_curr.schema.fields if f.dataType == StringType()]
+    curr_int_cols = [f.name for f in df_curr.schema.fields if f.dataType == IntegerType()]
+    curr_bool_cols = [f.name for f in df_curr.schema.fields if f.dataType == BooleanType()]
 
     print(f'==== Read {df_curr.count()} currency rows')
     df_curr.show()
+    print('==== Cleaning currencies dataframe ...')
+
+    df_curr_cleaned = clean_string_df(df_curr, curr_string_cols)
+
+    print('Showing cleaned currecies')
+    df_curr_cleaned.show()
 
 
 

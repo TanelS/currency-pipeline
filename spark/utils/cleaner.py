@@ -50,21 +50,22 @@ def clean_string(s: Union[str, int, float, None]) -> Union[str, int, float, None
 
     return s if s else None
 
-# Register the Python function as a UDF
+
 clean_string_udf = udf(clean_string, StringType()) # slower than native functions when dealing with large datasets
 
-def clean_df(df: DataFrame, columns: List[str]) -> DataFrame:
-    """
-    Cleans the specified columns in a given DataFrame by applying string cleaning logic. Empty string values
-    in the specified columns are replaced with `None`, while non-empty values are processed using a
-    custom-defined string cleaning function.
 
-    :param df: Input DataFrame to be cleaned.
+def clean_string_df(df: DataFrame, columns: List[str]) -> DataFrame:
+    """
+    Clean string-based columns in a DataFrame by applying a cleaning function and replacing empty strings
+    with None. This is performed only for specified column names.
+
+    :param df: The input DataFrame containing the data to be cleaned.
     :type df: DataFrame
-    :param columns: List of column names within the DataFrame that need to be cleaned.
+    :param columns: A list of column names to be cleaned. Only columns present in the DataFrame will
+        be processed.
     :type columns: List[str]
-    :return: A DataFrame with the specified columns cleaned. If the DataFrame is empty, returns the
-        original DataFrame.
+    :return: A DataFrame with specified columns cleaned by trimming whitespace, replacing empty strings
+        with None, and applying the `clean_string_udf` function.
     :rtype: DataFrame
     """
     if df.count() == 0:
