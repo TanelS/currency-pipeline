@@ -82,3 +82,10 @@ def clean_string_df(df: DataFrame, columns: List[str]) -> DataFrame:
             )
     return cleaned_df
 
+
+def validate_int_df(df: DataFrame, columns: List[str]) -> DataFrame:
+    ...
+
+
+def validate_timestamps_df(df: DataFrame, columns: List[str]) -> DataFrame:
+    ...
