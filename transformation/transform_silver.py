@@ -20,7 +20,8 @@ from spark.session.builder import get_spark
 from spark.utils.validation import (
     clean_string_df,
     validate_int_df,
-    validate_timestamp_df
+    validate_timestamp_df,
+    validate_boolean_df
 )
 
 from spark.schemas.rate_schema import RATES_SCHEMA
@@ -65,6 +66,10 @@ def transform_currencies(spark: SparkSession):
     df_curr_int_validated = validate_int_df(df_curr_cleaned, curr_int_cols, currency_rules)
     print('Showing integer validated currencies')
     df_curr_int_validated.show()
+
+    df_curr_bool_validated = validate_boolean_df(df_curr_int_validated, curr_bool_cols, currency_rules)
+    print('Showing boolean validated currencies')
+    df_curr_bool_validated.show()
 
 
 

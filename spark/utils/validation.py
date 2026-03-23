@@ -192,3 +192,32 @@ def validate_timestamp_df(df: DataFrame, columns: List[str], rules: dict) -> Dat
     return df
 
 
+def validate_boolean_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
+    """
+    Validate the boolean columns of a DataFrame against specific rules and return the updated DataFrame with validation
+    errors, if any.
+
+    The function iterates over a list of columns, checks if they exist in the DataFrame, and applies validation rules
+    based on the provided rule definitions. A concatenated string of validation error messages is appended as a new
+    column `_validation_errors` for rows that do not meet the rules.
+
+    :param df: DataFrame to be validated.
+    :param columns: List of column names to validate.
+    :param rules: Dictionary containing validation rules for each column. Rules may include a 'required' flag that
+        specifies whether a column cannot contain null values.
+    :return: DataFrame with an additional `_validation_errors` column, which contains validation error messages for
+        rows that do not meet the column-specific rules.
+    """
+    error_cols = []
+    for col_name in columns:
+        if col_name in df.columns:
+            col_rules = rules.get(col_name)
+            if not col_rules:
+                continue
+            if col_rules.get('required'):
+                error_cols.append(F.when(F.col(col_name).isNull(), F.lit(f'{col_name} is required')))
+    if error_cols:
+        df = df.withColumn('_validation_errors', F.concat_ws('; ', *error_cols))
+    return df
+
+
