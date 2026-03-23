@@ -221,3 +221,83 @@ def validate_boolean_df(df: DataFrame, columns: List[str], rules: dict) -> DataF
     return df
 
 
+def validate_string_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
+    """
+    Validates a Spark DataFrame against specified string column rules and returns a DataFrame
+    with validation results.
+
+    This function enforces validation rules for specified string columns in a DataFrame. For each
+    column in the `columns` list, the function checks the rules defined in the `rules` dictionary.
+    Rule checks include whether a column value is required (non-null) and whether a column value
+    matches a specific length. Validation errors, if any, are concatenated into a single column
+    named `_validation_errors`.
+
+    :param df: The Spark DataFrame to be validated.
+    :type df: DataFrame
+    :param columns: A list of column names to validate in the DataFrame.
+    :type columns: List[str]
+    :param rules: A dictionary of validation rules for each column. The rules may include:
+        - `required`: A boolean indicating if the column value is required (non-null).
+        - `length`: An integer specifying the expected length for the column values.
+    :type rules: dict
+    :return: A DataFrame with an additional column named `_validation_errors` containing
+        concatenated error messages for rows that do not pass the validation rules. If no
+        validation errors occur, the `_validation_errors` column will be absent.
+    :rtype: DataFrame
+    """
+    error_cols = []
+    for col_name in columns:
+        if col_name in df.columns:
+            col_rules = rules.get(col_name)
+            if not col_rules:
+                continue
+            if col_rules.get('required'):
+                error_cols.append(F.when(F.col(col_name).isNull(), F.lit(f'{col_name} is required')))
+            if col_rules.get('length'):
+                error_cols.append(
+                    F.when(F.length(F.col(col_name)) != col_rules['length'],
+                           F.lit(f'{col_name} must be {col_rules["length"]} characters long')))
+    if error_cols:
+        df = df.withColumn('_validation_errors', F.concat_ws('; ', *error_cols))
+    return df
+
+
+def validate_decimal_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
+    """
+    Validates specified decimal columns in a Spark DataFrame based on custom rules and adds validation
+    errors as a new column when violations are detected.
+
+    The function iterates through the provided column names and applies the rules specified for each
+    column in the `rules` dictionary. Rules such as required fields, maximum, and minimum values can
+    be validated. If there are validation rule violations in any column, a new column '_validation_errors'
+    is created or updated in the DataFrame to store error messages.
+
+    :param df: A Spark DataFrame that contains the columns to validate.
+    :param columns: A list of column names in the DataFrame to validate. Only these specified columns
+        will be checked.
+    :param rules: A dictionary structure where keys are column names and values are dictionaries of
+        column-specific validation rules. Each rule dictionary may contain:
+        - 'required' (bool): Indicates if the column is mandatory (no NULL values allowed).
+        - 'max_rate_value' (float or int): The maximum permissible value for the column.
+        - 'min_rate_value' (float or int): The minimum permissible value for the column.
+    :return: A new Spark DataFrame with validations applied. If any column violates the validation
+        rules, the resulting DataFrame will contain a new column '_validation_errors' with the
+        concatenated error messages for those violations.
+    """
+    error_cols = []
+    for col_name in columns:
+        if col_name in df.columns:
+            col_rules = rules.get(col_name)
+            if not col_rules:
+                continue
+            if col_rules.get('required'):
+                error_cols.append(F.when(F.col(col_name).isNull(), F.lit(f'{col_name} is required')))
+            if col_rules.get('max_rate_value'):
+                error_cols.append(F.when(F.col(col_name) > col_rules['max_rate_value'],
+                           F.lit(f'{col_name} must be less than {col_rules["max_rate_value"]}')))
+            if col_rules.get('min_rate_value'):
+                error_cols.append(F.when(F.col(col_name) < col_rules['min_rate_value'],
+                           F.lit(f'{col_name} must be more than {col_rules["min_rate_value"]}')))
+    if error_cols:
+        df = df.withColumn('_validation_errors', F.concat_ws('; ', *error_cols))
+    return df
