@@ -16,8 +16,8 @@ validation:
       rate:
         type: decimal
         required: true
-        max_rate_value: 1000000
-        min_rate_value: 1
+        max_rate_value: 100000000
+        min_rate_value: 0.000001
   currencies:
     columns:
       id:
