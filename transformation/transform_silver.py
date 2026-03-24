@@ -54,28 +54,15 @@ def transform_currencies(spark: SparkSession):
     curr_int_cols = [f.name for f in df_curr.schema.fields if f.dataType == IntegerType()]
     curr_bool_cols = [f.name for f in df_curr.schema.fields if f.dataType == BooleanType()]
 
-
-    print(f'==== Read {df_curr.count()} currency rows')
-    df_curr.show()
-    print('==== Cleaning currencies dataframe ...')
+    print(f'Read {df_curr.count()} currency rows')
+    print('Cleaning currencies dataframe ...')
 
     df_curr_cleaned = clean_string_df(df_curr, curr_string_cols)
     df_curr_cleaned = df_curr_cleaned.withColumn('code', F.lpad(F.col('code'), 3, '0'))
-
-    print('Showing cleaned currencies')
-    df_curr_cleaned.show()
-
     df_curr_int_validated = validate_int_df(df_curr_cleaned, curr_int_cols, currency_rules)
-    print('Showing integer validated currencies')
-    df_curr_int_validated.show()
-
     df_curr_bool_validated = validate_boolean_df(df_curr_int_validated, curr_bool_cols, currency_rules)
-    print('Showing boolean validated currencies')
-    df_curr_bool_validated.show()
-
-    df_curr_string_validated = validate_string_df(df_curr_bool_validated, curr_string_cols, currency_rules)
-    print('Showing string validated currencies')
-    df_curr_string_validated.show()
+    df_curr_validated = validate_string_df(df_curr_bool_validated, curr_string_cols, currency_rules)
+    df_curr_validated.show()
 
 
 
@@ -86,26 +73,17 @@ def transform_rates(spark: SparkSession):
     df_rates = spark.read.format('delta').load(silver_path_rates)
     df_rates = df_rates.repartition(4)
 
+    print(f'Read {df_rates.count()} currency rates rows')
+
     rates_string_cols = [f.name for f in df_rates.schema.fields if f.dataType == StringType()]
     rates_timestamp_cols = [f.name for f in df_rates.schema.fields if f.dataType == TimestampType()]
     rates_decimal_cols = [f.name for f in df_rates.schema.fields if f.dataType == DecimalType()]
 
     df_rates_cleaned = clean_string_df(df_rates, rates_string_cols)
-    print('Showing cleaned rates')
-    df_rates_cleaned.show()
-
     df_rates_timestamp_validated = validate_timestamp_df(df_rates_cleaned, rates_timestamp_cols, rates_rules)
-    print('Showing timestamp cleaned rates')
-    df_rates_timestamp_validated.show()
-
     df_rates_decimal_validated = validate_decimal_df(df_rates_timestamp_validated, rates_decimal_cols, rates_rules)
-    print('Showing decimal validated rates')
-    df_rates_decimal_validated.show()
-
-
-    df_rates_string_validated = validate_string_df(df_rates_decimal_validated, rates_string_cols, rates_rules)
-    print('Showing string validated rates')
-    df_rates_string_validated.show()
+    df_rates_validated = validate_string_df(df_rates_decimal_validated, rates_string_cols, rates_rules)
+    df_rates_validated.show()
 
 if __name__ == '__main__':
     spark = get_spark("silver_currency_stuff")
