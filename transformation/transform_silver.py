@@ -132,6 +132,13 @@ def transform_rates(spark: SparkSession):
     )
 
     df_rates = spark.read.format('delta').load(bronze_path_rates)
+
+    # We use only latest rates
+    max_ingested_at = df_rates.select(F.max('_ingested_at')).collect()[0][0]
+    df_rates = df_rates.filter(F.col('_ingested_at') == max_ingested_at)
+
+    print(f'Latest ingested_at: {max_ingested_at}')
+
     df_rates = df_rates.repartition(4)
 
     # We discard all non ISO 4217 currencies:
