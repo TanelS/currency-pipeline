@@ -43,12 +43,16 @@ if validation_params is None:
 currency_rules = validation_params['validation']['currencies']['columns']
 rates_rules = validation_params['validation']['rates']['columns']
 
+bronze_path_currencies = os.path.join(BRONZE_OUT_DIR, 'currencies')
+silver_path_currencies = os.path.join(SILVER_DIR, 'currencies')
+silver_path_quarantine_currencies = os.path.join(SILVER_DIR, 'currencies_quarantine')
+
+bronze_path_rates = os.path.join(BRONZE_OUT_DIR, 'rates')
+silver_path_rates = os.path.join(SILVER_DIR, 'rates')
+silver_path_quarantine_rates = os.path.join(SILVER_DIR, 'rates_quarantine')
 
 
 def transform_currencies(spark: SparkSession) -> DataFrame:
-    bronze_path_currencies = os.path.join(BRONZE_OUT_DIR, 'currencies')
-    silver_patch_currencies = os.path.join(SILVER_DIR, 'currencies')
-    silver_patch_quarantine_currencies = os.path.join(SILVER_DIR, 'currencies_quarantine')
 
     print(f'Reading Bronze currencies from: {bronze_path_currencies}')
 
@@ -70,7 +74,7 @@ def transform_currencies(spark: SparkSession) -> DataFrame:
 
     df_currencies_valid = df_curr_validated.filter(col('_validation_errors') == '')
     df_currencies_quarantine = df_curr_validated.filter(col('_validation_errors') != '')
-    print('Valid :')
+    print('Valid currencies:')
     df_currencies_valid.show()
     print('Quarantined currencies:')
     df_currencies_quarantine.show()
@@ -80,9 +84,9 @@ def transform_currencies(spark: SparkSession) -> DataFrame:
         .drop('_validation_errors')
         .write.format("delta")
         .mode("overwrite")
-        .save(silver_patch_currencies)
+        .save(silver_path_currencies)
     )
-    print(f'Valid {df_currencies_valid.count()} currencies saved to: {silver_patch_currencies}')
+    print(f'Valid {df_currencies_valid.count()} currencies saved to: {silver_path_currencies}')
 
     quar_curr_count = df_currencies_quarantine.count()
 
@@ -91,9 +95,9 @@ def transform_currencies(spark: SparkSession) -> DataFrame:
             df_currencies_quarantine
             .write.format("delta")
             .mode("overwrite")
-            .save(silver_patch_quarantine_currencies)
+            .save(silver_path_quarantine_currencies)
         )
-        print(f'Quarantined {quar_curr_count} currencies saved to: {silver_patch_quarantine_currencies}')
+        print(f'Quarantined {quar_curr_count} currencies saved to: {silver_path_quarantine_currencies}')
 
     return df_currencies_valid  # do I have to return that DataFrame here?
 
@@ -101,8 +105,20 @@ def transform_rates(spark: SparkSession) -> DataFrame:
     bronze_path_rates = os.path.join(BRONZE_OUT_DIR, 'rates')
     print(f'Reading Bronze rates from: {bronze_path_rates}')
 
+    iso_4217_currencies = (
+        spark.read
+        .format('delta')
+        .load(silver_path_currencies)
+        .select('short_code')
+    )
+
     df_rates = spark.read.format('delta').load(bronze_path_rates)
     df_rates = df_rates.repartition(4)
+
+    # We dicard all non ISO 4217 currencies:
+    df_rates = df_rates.join(iso_4217_currencies, df_rates.curr_base == iso_4217_currencies.short_code, 'inner').drop('short_code')
+    df_rates = df_rates.join(iso_4217_currencies, df_rates.currency == iso_4217_currencies.short_code, 'inner').drop('short_code')
+
 
     print(f'Read {df_rates.count()} currency rates rows')
 
@@ -114,9 +130,40 @@ def transform_rates(spark: SparkSession) -> DataFrame:
     df_rates_timestamp_validated = validate_timestamp_df(df_rates_cleaned, rates_timestamp_cols, rates_rules)
     df_rates_decimal_validated = validate_decimal_df(df_rates_timestamp_validated, rates_decimal_cols, rates_rules)
     df_rates_validated = validate_string_df(df_rates_decimal_validated, rates_string_cols, rates_rules)
-    df_rates_validated.show()
 
-    return df_rates_validated
+    df_rates_valid = df_rates_validated.filter(col('_validation_errors') == '')
+    df_rates_quarantine = df_rates_validated.filter(col('_validation_errors') != '')
+
+    print('Valid rates:')
+    df_rates_valid.show()
+
+    (
+        df_rates_valid
+        .drop('_validation_errors')
+        .write.format("delta")
+        .mode("overwrite")
+        .partitionBy("curr_base")
+        .save(silver_path_rates)
+    )
+
+    print(f'Valid {df_rates_valid.count()} rates written to {silver_path_rates}')
+
+    print('Quarantined rates:')
+    df_rates_quarantine.show()
+
+    quar_rates_count = df_rates_quarantine.count()
+
+    if quar_rates_count > 0:
+        (
+            df_rates_quarantine
+            .write.format("delta")
+            .mode("overwrite")
+            .partitionBy("curr_base")
+            .save(silver_path_quarantine_currencies)
+        )
+        print(f'Quarantined {quar_rates_count} currencies saved to: {silver_path_quarantine_currencies}')
+
+    return df_rates_valid
 
 
 # def split_currencies(spark: SparkSession):  # TODO delete
@@ -135,6 +182,6 @@ if __name__ == '__main__':
     spark = get_spark("silver_currency_stuff")
     spark.sparkContext.setLogLevel("WARN")
 
-    transform_currencies(spark)
-    # transform_rates(spark)
+    # transform_currencies(spark)
+    transform_rates(spark)
 
