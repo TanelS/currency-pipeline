@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir \
     pyarrow \
     dbt-core \
     dbt-postgres \
-    psycopg2-binary \
     psycopg[binary] \
     python-dotenv
 

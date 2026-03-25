@@ -1,5 +1,8 @@
 
-
+### Build Docker image
+```bash
+docker compose build
+```
 
 ## Running the Pipeline
 
