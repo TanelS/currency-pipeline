@@ -161,7 +161,7 @@ def transform_rates(spark: SparkSession) -> DataFrame:
             .partitionBy("curr_base")
             .save(silver_path_quarantine_currencies)
         )
-        print(f'Quarantined {quar_rates_count} currencies saved to: {silver_path_quarantine_rates}')
+        print(f'Quarantined {quar_rates_count} rates saved to: {silver_path_quarantine_rates}')
 
     return df_rates_valid
 
