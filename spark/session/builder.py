@@ -15,7 +15,10 @@ def get_spark(appname: str):
         )
     )
     if config.RUNNING_LOCAL:
-        builder = builder.master("local[*]").config(
-            "spark.jars.packages", "io.delta:delta-spark_2.12:3.1.0"
+        builder = (
+            builder
+            .master('local[*]')
+            .config('spark.jars.packages',
+                    'io.delta:delta-spark_2.12:3.1.0,org.postgresql:postgresql:42.7.3')
         )
     return builder.getOrCreate()

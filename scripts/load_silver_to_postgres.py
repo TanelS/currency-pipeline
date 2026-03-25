@@ -12,7 +12,7 @@ silver_path_rates = os.path.join(SILVER_DIR, 'rates')
 
 
 def load_currencies_to_stage(spark):
-    print(f'Reading Silver currencues from: {silver_path_currencies}')
+    print(f'Reading Silver currencies from: {silver_path_currencies}')
     df = spark.read.format('delta').load(silver_path_currencies)
     print(f"  Rows: {df.count():,}")
     df.show()
