@@ -5,7 +5,7 @@ from pyspark.sql import SparkSession
 import psycopg
 from spark.config.spark_config import BRONZE_OUT_DIR, SILVER_DIR
 from spark.session.builder import get_spark
-from db import jdbc_props, JDBC_URL
+from db import jdbc_props, JDBC_URL, conn_string
 
 silver_path_currencies = os.path.join(SILVER_DIR, 'currencies')
 silver_path_rates = os.path.join(SILVER_DIR, 'rates')
@@ -22,7 +22,10 @@ def load_currencies_to_stage(spark):
     writer.jdbc(JDBC_URL, 'public.currencies_stage', properties=jdbc_props)
     print('  Currencies stage table loaded.')
 
-
+    with psycopg.connect(conn_string) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute('ALTER TABLE public.currencies_stage ADD PRIMARY KEY (short_code)')
+        conn.commit()
 
 
 if __name__ == '__main__':
