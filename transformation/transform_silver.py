@@ -3,6 +3,7 @@ import os
 import yaml
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql.functions import col
 from pyspark.sql.types import (
     BooleanType,
     IntegerType,
@@ -44,7 +45,7 @@ rates_rules = validation_params['validation']['rates']['columns']
 
 
 
-def transform_currencies(spark: SparkSession):
+def transform_currencies(spark: SparkSession) -> DataFrame:
     silver_path_currencies = os.path.join(BRONZE_OUT_DIR, 'currencies')
     print(f'Reading Silver currencies from: {silver_path_currencies}')
 
@@ -64,9 +65,10 @@ def transform_currencies(spark: SparkSession):
     df_curr_validated = validate_string_df(df_curr_bool_validated, curr_string_cols, currency_rules)
     df_curr_validated.show()
 
+    return df_curr_validated
 
 
-def transform_rates(spark: SparkSession):
+def transform_rates(spark: SparkSession) -> DataFrame:
     silver_path_rates = os.path.join(BRONZE_OUT_DIR, 'rates')
     print(f'Reading Silver rates from: {silver_path_rates}')
 
@@ -85,9 +87,26 @@ def transform_rates(spark: SparkSession):
     df_rates_validated = validate_string_df(df_rates_decimal_validated, rates_string_cols, rates_rules)
     df_rates_validated.show()
 
+    return df_rates_validated
+
+
+def split_currencies(spark: SparkSession):
+
+    df = transform_currencies(spark)
+
+    df_currencies_valid = df.filter(col('_validation_errors') =='')
+    df_currencies_quarantine = df.filter(col('_validation_errors') != '')
+    print('Valid currencies')
+    df_currencies_valid.show()
+    print('quarantined currencies')
+    df_currencies_quarantine.show()
+
+
 if __name__ == '__main__':
     spark = get_spark("silver_currency_stuff")
     spark.sparkContext.setLogLevel("WARN")
 
-    transform_currencies(spark)
-    transform_rates(spark)
+    # transform_currencies(spark)
+    # transform_rates(spark)
+
+    split_currencies(spark)
