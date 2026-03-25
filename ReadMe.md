@@ -23,3 +23,12 @@ To staging
 ```bash
 docker compose run --remove-orphans spark python3 transformation/transform_silver.py
 ```
+
+
+
+To PostgreSQL
+
+
+```bash
+docker compose run --remove-orphans spark python3 scripts/load_silver_to_postgres.py
+```

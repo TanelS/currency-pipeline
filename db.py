@@ -5,8 +5,7 @@ from config import (
     DATABASE_HOST,
     DATABASE_NAME
 )
-
-
+import psycopg
 jdbc_props = {
     'user': DATABASE_USERNAME,
     'password': DATABASE_PASSWORD,
