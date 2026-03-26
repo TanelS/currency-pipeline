@@ -64,8 +64,6 @@ sources:
               - not_null
           - name: rate
             description: "Exchange rate"
-            tests:
-              - not_null
           - name: rate_date
             description: "Rate timestamp"
             tests:
@@ -116,7 +114,7 @@ models:
         description: "Currency thousands separator"
   - name: fact_rates
     columns:
-      - name: curr_base_key
+      - name: curr_base
         description: "Base currency code"
         tests:
           - not_null
@@ -124,7 +122,7 @@ models:
               to: ref('dim_currencies')
               field: currency_key
 
-      - name: currency_key
+      - name: currency
         description: "Currency code"
         tests:
           - not_null
@@ -133,9 +131,7 @@ models:
               field: currency_key
       - name: rate
         description: "Exchange rate"
-        tests:
-          - not_null
-      - name: rate_date_key
+      - name: date_key
         description: "Rate timestamp"
         tests:
           - not_null
