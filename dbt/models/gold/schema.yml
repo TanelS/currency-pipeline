@@ -1,0 +1,77 @@
+version: 2
+
+# -- sources ---
+
+sources:
+  - name: silver
+    schema: public
+    description: "Cleaned data from raw sources produced by PySpark"
+    tables:
+      - name: currencies_stage
+        description: "Cleaned ISO 4217 currencies"
+        columns:
+          - name: id
+            description: "ID from external API"
+            tests:
+              - not_null
+          - name: name
+            description: "Currency name"
+            tests:
+              - not_null
+          - name: short_code
+            description: "Currency ISO 4217 alphabetic code"
+            tests:
+              - not_null
+              - unique
+          - name: code
+            description: "Currency ISO 4217 numeric code"
+            tests:
+              - not_null
+              - unique
+          - name: precision
+            description: "Currency decimal precision - number of digits after the decimal separator"
+            tests:
+              - not_null
+          - name: subunit
+            description: "Currency subunit - smallest unit of currency"
+            tests:
+              - not_null
+          - name: symbol
+            description: "Currency symbol"
+            tests:
+              - not_null
+          - name: symbol_first
+            description: "Currency symbol position - True if symbol comes before the amount"
+            tests:
+              - not_null
+          - name: decimal_mark
+            description: "Currency decimal separator"
+            tests:
+              - not_null
+          - name: thousands_separator
+            description: "Currency thousands separator"
+
+      - name: rates_stage
+        description: "Cleanded currency rates"
+        columns:
+          - name: curr_base
+            description: "Base currency code"
+            tests:
+              - not_null
+          - name: currency
+            description: "Currency code"
+            tests:
+              - not_null
+          - name: rate
+            description: "Exchange rate"
+            tests:
+              - not_null
+          - name: rate_date
+            description: "Rate timestamp"
+            tests:
+              - not_null
+
+
+
+
+
