@@ -52,9 +52,5 @@ RUNNING_LOCAL = config_environment["RUNNING_LOCAL"]
 DBT_POSTGRES_HOST = config_environment["DBT_POSTGRES_HOST"]
 DBT_POSTGRES_PORT = config_environment["DBT_POSTGRES_PORT"]
 
-API_V1_STR = config_environment["API_V1_STR"]
-
-# CORS Origins configuration
-CORS_ORIGINS = [origin.strip() for origin in config_environment.get("CORS_ORIGINS", "").split(",") if origin.strip()]
 
 
