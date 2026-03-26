@@ -4,6 +4,7 @@ services:
     build: .                          # uses Dockerfile in project root
     environment:
       - SPARK_MODE=master
+      - PYTHONPATH=/app
     volumes:
       - .:/app                        # mounts entire project into /app
     working_dir: /app
@@ -16,11 +17,11 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: currencies
+      POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5441:5432"                   # 5441 on host to avoid conflict with local PostgreSQL
+      - "5442:5432"                   # 5441 on host to avoid conflict with local PostgreSQL
     volumes:
       - ./postgres_data:/var/lib/postgresql/data    # bind mount — visible in DataGrip/pgAdmin
     env_file:

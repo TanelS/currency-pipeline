@@ -1,0 +1,63 @@
+validation:
+  rates:
+    columns:
+      curr_base:
+        type: string
+        required: true
+        length: 3
+      currency:
+        type: string
+        required: true
+        length: 3
+      rate_date:
+        type: datetime
+        required: true
+        min_date: "2019-01-01"
+      rate:
+        type: decimal
+        required: true
+        max_rate_value: 100000000
+        min_rate_value: 0.000001
+  currencies:
+    columns:
+      id:
+        type: integer
+        required: true
+        min: 1
+      name:
+        type: string
+        required: true
+      short_code:
+        type: string
+        required: true
+        length: 3
+      code:
+        type: string
+        required: true
+        length: 3
+      precision:
+        type: integer
+        required: true
+        min: 0
+        max: 3
+      subunit:
+        type: integer
+        required: true
+        min: 1
+        max: 1000
+      symbol:
+        type: string
+        required: true
+      symbol_first:
+        type: boolean
+        required: true
+      decimal_mark:
+        type: string
+        required: true
+        length: 1
+        format: '[.,]'
+      thousands_separator:
+        type: string
+        required: false
+        length: 1
+        format: '[.,]'
