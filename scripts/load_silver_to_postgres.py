@@ -35,8 +35,8 @@ def load_currencies_to_stage(spark):
     try:
         with psycopg.connect(conn_string) as conn:
             with conn.cursor() as cursor:
-                cursor.execute('ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS base_fk')
-                cursor.execute('ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS curr_fk')
+                cursor.execute('ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS base_fk')  # noqa
+                cursor.execute('ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS curr_fk')  # noqa
             conn.commit()
     except Exception as e:
         logger.exception(f"Failed to drop foreign key constraints: {e}")
@@ -48,8 +48,8 @@ def load_currencies_to_stage(spark):
     with psycopg.connect(conn_string) as conn:
 
         with conn.cursor() as cursor:
-            cursor.execute('ALTER TABLE public.currencies_stage DROP CONSTRAINT IF EXISTS currencies_stage_pkey')
-            cursor.execute('ALTER TABLE public.currencies_stage ADD PRIMARY KEY (short_code)')
+            cursor.execute('ALTER TABLE public.currencies_stage DROP CONSTRAINT IF EXISTS currencies_stage_pkey')  # noqa
+            cursor.execute('ALTER TABLE public.currencies_stage ADD PRIMARY KEY (short_code)')  # noqa
         conn.commit()
 
 
