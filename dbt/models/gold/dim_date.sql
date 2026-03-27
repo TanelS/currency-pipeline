@@ -1,7 +1,11 @@
 {{
     config(
         materialized = 'incremental',
-        unique_key = 'date_key'
+        unique_key = 'date_key',
+        indexes=[
+            {'columns': ['date_key'], 'type': "btree"},
+            {'columns': ['date'], 'type': "btree"}
+        ]
     )
 }}
 

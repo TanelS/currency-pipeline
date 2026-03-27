@@ -1,6 +1,10 @@
 {{
     config(
-        materialized = 'table'
+        materialized = 'table',
+        indexes=[
+            {'columns': ['currency_key'], 'type': "btree"},
+            {'columns': ['name'], 'type': "btree"}
+        ]
     )
 }}
 
