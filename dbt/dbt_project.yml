@@ -1,0 +1,25 @@
+name: 'currency_rates'
+version: '0.1'
+config-version: 2
+
+profile: 'currency_rates'
+
+model-paths:
+  - models
+
+test-paths:
+  - tests
+seed-paths:
+  - seeds
+
+target-path: "target"
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  currency_rates:
+    gold:
+      +materialized: table
+      +schema: gold
+

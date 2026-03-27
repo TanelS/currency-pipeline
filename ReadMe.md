@@ -32,3 +32,11 @@ To PostgreSQL
 ```bash
 docker compose run --remove-orphans spark python3 scripts/load_silver_to_postgres.py
 ```
+
+Gold
+
+Currencies
+
+```bash
+docker compose run --remove-orphans spark dbt run --project-dir dbt/ --profiles-dir dbt/
+```

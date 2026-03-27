@@ -5,6 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/data" />
       <excludeFolder url="file://$MODULE_DIR$/data_copy" />
+      <excludeFolder url="file://$MODULE_DIR$/dbt/target" />
     </content>
     <orderEntry type="jdk" jdkName="uv (pipedrive-test-task-2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
