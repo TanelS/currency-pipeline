@@ -142,7 +142,7 @@ def transform_rates(spark: SparkSession) -> None:
         .select('short_code')
     )
 
-    if not iso_4217_currencies.count() == 0:
+    if iso_4217_currencies.count() == 0:
         logger.error('No ISO 4217 currencies found in Silver layer. Cannot proceed with rate transformation.')
         print('No ISO 4217 currencies found in Silver layer. Cannot proceed with rate transformation.')
         return
