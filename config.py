@@ -43,7 +43,7 @@ DATABASE_NAME = config_environment["DB_DATABASE"]
 
 CURRENCYBEACON_API_KEY = config_environment["CURRENCYBEACON_API_KEY"]
 CURRENCYBEACON_API_ROOT = config_environment["CURRENCYBEACON_API_ROOT"]
-RUNNING_LOCAL = config_environment["RUNNING_LOCAL"]
+RUNNING_LOCAL = config_environment["RUNNING_LOCAL"].lower() in ("1", "true", "yes")
 
 # Actually Spark code uses those too, so the prefix DBT_ is just arbitrary:
 DBT_POSTGRES_HOST = config_environment["DBT_POSTGRES_HOST"]
