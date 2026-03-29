@@ -16,15 +16,25 @@ from spark.session.builder import get_spark
 logger = logging.getLogger('ingest-bronze')
 
 
-def ingest_curr_codes(spark: SparkSession) -> Optional[DataFrame, None]:
+def ingest_curr_codes(spark: SparkSession) -> Optional[DataFrame]:
     """
-    Reads currency data from the CurrencyBeacon API, performs ingestion and transformation, and writes the data to a
-    Bronze Delta table. This function retrieves raw currency symbols, applies metadata, and saves the resulting data.
+    Ingests currency codes data from the CurrencyBeacon API into a Delta table in the Bronze
+    layer. The data is read from the API, transformed to include metadata columns, and then
+    written to a Delta table.
 
-    :param spark: SparkSession instance used to create and manipulate Spark DataFrames.
+    The method starts by fetching raw currency symbols from the CurrencyBeacon API. If no data
+    is available, the ingestion process is aborted. The fetched data is transformed into a
+    Spark DataFrame according to a predefined schema. Metadata, such as ingestion timestamp,
+    source file URL, and batch ID, is added to the DataFrame.
+
+    The transformed DataFrame is written as a Delta table into a predefined Bronze layer
+    directory. The writing process ensures partitioning and overwriting to maintain data
+    coherence for subsequent processing layers.
+
+    :param spark: A SparkSession instance used for creating and managing Spark DataFrames.
     :type spark: SparkSession
-    :return: Transformed and written DataFrame containing currency data with additional metadata, or None if ingestion fails.
-    :rtype: Optional[DataFrame, None]
+    :return: The ingested DataFrame with metadata added, or None if the ingestion process fails.
+    :rtype: Optional[DataFrame]
     """
     print('Reading raw currency symbols data from CurrenyBeacon API')
     raw_curr_symbols = get_currencies()

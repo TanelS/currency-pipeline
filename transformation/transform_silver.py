@@ -142,7 +142,7 @@ def transform_rates(spark: SparkSession) -> None:
         .select('short_code')
     )
 
-    if not iso_4217_currencies:
+    if not iso_4217_currencies.count() == 0:
         logger.error('No ISO 4217 currencies found in Silver layer. Cannot proceed with rate transformation.')
         print('No ISO 4217 currencies found in Silver layer. Cannot proceed with rate transformation.')
         return
@@ -206,11 +206,11 @@ def transform_rates(spark: SparkSession) -> None:
                 .write.format("delta")
                 .mode("overwrite")
                 .partitionBy("curr_base")
-                .save(silver_path_quarantine_currencies)
+                .save(silver_path_quarantine_rates)
             )
         except Exception as e:
-            logger.exception(f'Error writing quarantined rates to {silver_path_quarantine_currencies}: {e}')
-            print(f'Error writing quarantined rates to {silver_path_quarantine_currencies}: {e}')
+            logger.exception(f'Error writing quarantined rates to {silver_path_quarantine_rates}: {e}')
+            print(f'Error writing quarantined rates to {silver_path_quarantine_rates}: {e}')
 
         print(f'Quarantined {quar_rates_count} rates saved to: {silver_path_quarantine_rates}')
 
