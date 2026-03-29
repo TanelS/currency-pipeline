@@ -8,13 +8,9 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 >
 > **Note on AI usage**
 >
-> AI assistance (Claude) was used in a limited capacity during this project. It helped generate the Mermaid diagrams in the `/diagrams` directory and provided high-level guidance (e.g. project structure suggestions and debugging support).
+> AI assistance (Claude) was used throughout this project as a learning tool and mentor — providing guidance on project structure, explaining concepts, and helping debug issues. I explicitly asked it not to write code for me. 
 >
-> All core implementation, pipeline logic, and integration work were written by me. AI was used as a supporting tool, not for direct code generation.
->
-> Some documentation and example queries were refined with AI assistance for clarity.
-
-## Tech Stack
+> An exception: Claude generated a complete reference project (`est-address-pipeline` based on In-ADS [dataset](https://geoportaal.maaamet.ee/eng/spatial-data/address-data-p313.html)) at the start, which I studied line by line before building this pipeline myself. Mermaid diagrams and Python docstrings were AI-assisted. Core pipeline logic, dbt models, and integration work were written by me.
 
 | Layer | Technology |
 |-------|-----------|
