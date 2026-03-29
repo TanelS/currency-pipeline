@@ -3,10 +3,10 @@ currency_rates:
   outputs:
     dev:
       type: postgres
-      host: postgres
+      host: postgres  # Container hostname for the PostgreSQL service
       user: "{{ env_var('DB_USERNAME') }}"
       password: "{{ env_var('POSTGRES_PASSWORD') }}"
-      port: 5432
+      port: 5432  # NB! This is a container port, not the host port
       dbname: currencies
       schema: public
       threads: 4
