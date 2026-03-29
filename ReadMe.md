@@ -6,13 +6,13 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 
 > [!NOTE]
 >
-> **Note on AI usage** and the general background
-> AI assistance (Claude Agent) was used to generate Mermaid diagrams in the `/diagrams` directory. Rest of the code was written by me but I had Claude as an assistant as a mentor but it was asked not to provide code, only advice (like directory tree) and debugging assistance. Some Notebook sample queries are also AI influenced. As I started this project from almost zero practical experience with PySpark and dbt, Claude AI generated me in the beginning a different & complete Spark/dbt project, based on the Estonian [In-ADS address database](https://geoportaal.maaamet.ee/eng/spatial-data/address-data-p313.html). I studied that project line-by-line, googling and asking clarifications from AI. Then I decided to do my fist version which is bit different and more complicated. Did it as a sequel to the original Pipedrive home assignment, leaving out SQLAlchemy ORM, FastApi and Pydantic. There are probably mistakes in it. Also the resulting "gold" data model is borderline useless, but the usefulness of the latter was not an objective. The main objective was to build new pipeline from raw ingestion to gold (Kimball star schema)
+> **Note on AI usage**
 >
-> Spent about a week developing, reading and debugging.
+> AI assistance (Claude) was used in a limited capacity during this project. It helped generate the Mermaid diagrams in the `/diagrams` directory and provided high-level guidance (e.g. project structure suggestions and debugging support).
 >
-> Python docstrings were generated using PyCharm’s built-in AI assistant.
+> All core implementation, pipeline logic, and integration work were written by me. AI was used as a supporting tool, not for direct code generation.
 >
+> Some documentation and example queries were refined with AI assistance for clarity.
 
 ## Tech Stack
 

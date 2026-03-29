@@ -111,7 +111,7 @@ def transform_currencies(spark: SparkSession) -> None:
             (
                 df_currencies_quarantine
                 .write.format("delta")
-                .mode("overwrite")
+                .mode("append")
                 .save(silver_path_quarantine_currencies)
             )
         except Exception as e:
@@ -204,7 +204,7 @@ def transform_rates(spark: SparkSession) -> None:
             (
                 df_rates_quarantine
                 .write.format("delta")
-                .mode("overwrite")
+                .mode("append")
                 .partitionBy("curr_base")
                 .save(silver_path_quarantine_rates)
             )
