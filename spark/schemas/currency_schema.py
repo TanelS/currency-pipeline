@@ -6,7 +6,6 @@ from pyspark.sql.types import (
     StructType,
 )
 
-
 CURRENCY_SCHEMA = StructType(
     [
         StructField("id", IntegerType(), True),
@@ -15,7 +14,7 @@ CURRENCY_SCHEMA = StructType(
         StructField("code", StringType(), True),
         StructField("precision", IntegerType(), True),
         StructField("subunit", IntegerType(), True),
-        StructField("symbol", StringType(), True),  # TODO rename downstream to curr_symbol
+        StructField("symbol", StringType(), True),
         StructField("symbol_first", BooleanType(), True),
         StructField("decimal_mark", StringType(), True),
         StructField("thousands_separator", StringType(), True),

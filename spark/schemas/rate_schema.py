@@ -1,9 +1,9 @@
 from pyspark.sql.types import (
+    DecimalType,
     StringType,
     StructField,
     StructType,
     TimestampType,
-    DecimalType,
 )
 
 RATES_SCHEMA = StructType(
