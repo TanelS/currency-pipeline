@@ -3,8 +3,8 @@
         materialized = 'incremental',
         unique_key = 'date_key',
         indexes=[
-            {'columns': ['date_key'], 'type': "btree"},
-            {'columns': ['date'], 'type': "btree"}
+            {'columns': ['date_key'], 'type': 'btree'},
+            {'columns': ['date'], 'type': 'btree'}
         ]
     )
 }}

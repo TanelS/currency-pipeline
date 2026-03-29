@@ -1,37 +1,32 @@
 import datetime
+import logging
 import os
+from decimal import Decimal
+from typing import Optional
 
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
-from decimal import Decimal
-import logging
 from ingestion.jobs import get_currencies, get_rates
 from spark.config.spark_config import BRONZE_OUT_DIR
-from spark.session.builder import get_spark
-
 from spark.schemas.currency_schema import CURRENCY_SCHEMA
 from spark.schemas.rate_schema import RATES_SCHEMA
+from spark.session.builder import get_spark
 
 logger = logging.getLogger('ingest-bronze')
 
 
-def ingest_curr_codes(spark: SparkSession):
+def ingest_curr_codes(spark: SparkSession) -> Optional[DataFrame, None]:
     """
-    Ingests currency codes from an external API into a Bronze Delta table.
+    Reads currency data from the CurrencyBeacon API, performs ingestion and transformation, and writes the data to a
+    Bronze Delta table. This function retrieves raw currency symbols, applies metadata, and saves the resulting data.
 
-    This function fetches raw currency symbols data from an external API and ingests
-    it into a Spark DataFrame using a defined schema. It enriches the ingested data
-    by adding metadata columns, including ingestion timestamp, source file URL, and
-    batch ID. The resultant DataFrame is then written to a Bronze Delta table.
-
-    :param spark: SparkSession object to manage the Spark application.
+    :param spark: SparkSession instance used to create and manipulate Spark DataFrames.
     :type spark: SparkSession
-    :return: Spark DataFrame containing the ingested and enriched currency data.
-    :rtype: pyspark.sql.DataFrame
-
+    :return: Transformed and written DataFrame containing currency data with additional metadata, or None if ingestion fails.
+    :rtype: Optional[DataFrame, None]
     """
-    print("Reading raw currency symbols data from API")
+    print('Reading raw currency symbols data from CurrenyBeacon API')
     raw_curr_symbols = get_currencies()
 
     if not raw_curr_symbols:
@@ -57,35 +52,40 @@ def ingest_curr_codes(spark: SparkSession):
     out_path = os.path.join(BRONZE_OUT_DIR, "currencies")
     print(f"  Writing Bronze Delta to: {out_path}")
 
-    (
-        df_with_meta
-        .coalesce(1)
-        .write
-        .format("delta")
-        .mode("overwrite")
-        .save(out_path)
-    )
+    try:
+        (
+            df_with_meta
+            .coalesce(1)
+            .write
+            .format("delta")
+            .mode("overwrite")
+            .save(out_path)
+        )
+    except Exception as e:
+        logger.exception(f'En error offurred during currency codes ingestion from CurrenyBeacon API: {e}')
+        print('Currency codes ingestion failed. Check logs for details.')
+        return None
 
     print("  Done. Bronze table written.")
     return df_with_meta
 
 
-def ingest_rates(spark: SparkSession):
+def ingest_rates(spark: SparkSession) -> Optional[DataFrame, None]:
     """
-    Ingest currency rates from an external API and store them in a Delta table. This function reads currency symbols from an
-    existing Bronze table, fetches exchange rates for all possible currency pairs from an external API, and writes the data
-    to a new Bronze Delta table, augmenting it with metadata for ingestion timestamp and source identification.
+    Reads currency rates from the CurrencyBeacon API, processes them, and writes the results to a 
+    Delta table in the Bronze layer. This function handles the ingestion of currency exchange rates 
+    by leveraging existing currency short codes from the Bronze currency table. If no currency 
+    symbols are found or there are issues retrieving or processing rates, appropriate error logs 
+    are generated.
 
-    :param spark: The SparkSession object used to interact with data.
-    :type spark: pyspark.sql.SparkSession
+    :param spark: SparkSession, required for interacting with Delta tables and constructing DataFrames.
+    :return: DataFrame with ingested currency rates and metadata if successful, otherwise None.
 
-    :return: A DataFrame containing the ingested currency rates with metadata, or None if no rates were ingested or if an
-        error occurred during processing.
-    :rtype: pyspark.sql.DataFrame or None
+    :raises Exception: When unable to write the processed rates to the Delta table due to unforeseen 
+        writing/connection failures or other runtime issues.
 
-    :raises Exception: If an error occurs during the write operation to the Delta table.
     """
-    print("Reading currency rates from API")
+    print('Reading currency rates from CurrenyBeacon API')
 
     df_symbols = (
         spark.read.format("Delta")
@@ -133,10 +133,9 @@ def ingest_rates(spark: SparkSession):
         else:
             logger.warning(f'No rates for base currency "{base_c}"')
 
-    print(f'{len(rate_rows) = }')  # TODO delete
-
     if not rate_rows:
-        logger.error('No rates to store ...')
+        logger.error('No rates to store')
+        print('No rates to store, exiting ...')
         return None
 
     df_read = spark.createDataFrame(rate_rows, RATES_SCHEMA)
@@ -176,6 +175,7 @@ def ingest_rates(spark: SparkSession):
         return df_with_meta
     except Exception as e:
         logger.exception(f'Failed to write Bronze Delta to {out_path}: {str(e)}')
+        print('Currency rates ingestion failed. Check logs for details.')
         return None
 
 

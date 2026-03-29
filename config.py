@@ -4,13 +4,9 @@ import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from dotenv import (
-    dotenv_values,
-    load_dotenv,
-    find_dotenv
-)
+from dotenv import dotenv_values, find_dotenv, load_dotenv
 
-load_dotenv(find_dotenv('./.env'))
+load_dotenv(find_dotenv("./.env"))
 
 config_environment = {
     **dotenv_values("./.env"),  # load local file development variables
@@ -18,8 +14,8 @@ config_environment = {
 }
 
 # logfile location and size
-LOG_FILENAME = os.path.join(Path(__file__).parent, 'logs', 'pipedrive_test.log')
-LOG_FILESIZE = 1  # logfile size in Megabytes, in total there will be two files (for a test 1MB is enough=
+LOG_FILENAME = os.path.join(Path(__file__).parent, "logs", "pipedrive_test.log")
+LOG_FILESIZE = 3  # logfile size in Megabytes, in total there will be two files (for a test 1MB is enough=
 
 # Ensure UTC timestamps in logs
 logging.Formatter.converter = time.gmtime
@@ -34,9 +30,9 @@ logging.basicConfig(
             filename=LOG_FILENAME,
             maxBytes=LOG_FILESIZE * 1024 * 1024,
             backupCount=1,
-            encoding="utf-8"
+            encoding="utf-8",
         )
-    ]
+    ],
 )
 
 DATABASE_USERNAME = config_environment["DB_USERNAME"]
@@ -49,8 +45,6 @@ CURRENCYBEACON_API_KEY = config_environment["CURRENCYBEACON_API_KEY"]
 CURRENCYBEACON_API_ROOT = config_environment["CURRENCYBEACON_API_ROOT"]
 RUNNING_LOCAL = config_environment["RUNNING_LOCAL"]
 
+# Actually Spark code uses those too, so the prefix DBT_ is just arbitrary:
 DBT_POSTGRES_HOST = config_environment["DBT_POSTGRES_HOST"]
 DBT_POSTGRES_PORT = config_environment["DBT_POSTGRES_PORT"]
-
-
-

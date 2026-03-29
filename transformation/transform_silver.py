@@ -44,23 +44,26 @@ silver_path_rates = os.path.join(SILVER_DIR, 'rates')
 silver_path_quarantine_rates = os.path.join(SILVER_DIR, 'rates_quarantine')
 
 
-def transform_currencies(spark: SparkSession):
+def transform_currencies(spark: SparkSession) -> None:
     """
-    Transforms and validates the currencies data from a Bronze Delta table, cleans the data, and
-    saves valid records to a Silver Delta table while placing invalid records into a quarantine.
+    Transforms and validates currency data from the Bronze layer, cleans string columns,
+    ensures integer and boolean column rules are met, and segregates the valid and
+    quarantined records into corresponding Silver layer paths.
 
-    This function performs the following:
-    1. Reads the Bronze Delta table for currencies.
-    2. Cleans string columns within the dataframe.
-    3. Applies validations to integer, boolean, and string columns based on predefined rules.
-    4. Splits the data into valid and quarantined subsets.
-    5. Writes the valid data to the designated Silver Delta table.
-    6. Writes the quarantined data to a separate Silver Delta quarantine table if any invalid records exist.
+    During the execution, the method performs the following tasks:
+    - Reads the Bronze currency data
+    - Cleans string columns to remove unwanted formatting or inconsistencies
+    - Validates integer and boolean columns based on predefined rules
+    - Identifies and separates valid and quarantined records
+    - Writes valid records to the specified Silver path for validated currencies
+    - Writes quarantined records (if any) to the quarantine path for further inspection
 
-    :param spark: The SparkSession instance used for interacting with Delta tables.
+    :param spark: An instance of the SparkSession used for reading and writing data.
     :type spark: SparkSession
 
-    :return: None
+    :return: This function does not return any value. The output is saved to Delta tables
+             at the Silver layer for valid and quarantined currencies.
+    :rtype: None
     """
     print(f'Reading Bronze currencies from: {bronze_path_currencies}')
 
@@ -87,49 +90,62 @@ def transform_currencies(spark: SparkSession):
     print('Quarantined currencies:')
     df_currencies_quarantine.show()
 
-    (
-        df_currencies_valid
-        .drop('_validation_errors')
-        .write.format("delta")
-        .mode("overwrite")
-        .save(silver_path_currencies)
-    )
+    try:
+        (
+            df_currencies_valid
+            .drop('_validation_errors')
+            .write.format("delta")
+            .mode("overwrite")
+            .save(silver_path_currencies)
+        )
+    except Exception as e:
+        logger.exception(f'Failed to save valid currencies to {silver_path_currencies}: {e}')
+        return
+
     print(f'Valid {df_currencies_valid.count()} currencies saved to: {silver_path_currencies}')
 
     quar_curr_count = df_currencies_quarantine.count()
 
     if quar_curr_count > 0:
-        (
-            df_currencies_quarantine
-            .write.format("delta")
-            .mode("overwrite")
-            .save(silver_path_quarantine_currencies)
-        )
+        try:
+            (
+                df_currencies_quarantine
+                .write.format("delta")
+                .mode("overwrite")
+                .save(silver_path_quarantine_currencies)
+            )
+        except Exception as e:
+            logger.exception(f'Failed to save quarantined currencies to {silver_path_quarantine_currencies}: {e}')
+
         print(f'Quarantined {quar_curr_count} currencies saved to: {silver_path_quarantine_currencies}')
 
 
-def transform_rates(spark: SparkSession):
+def transform_rates(spark: SparkSession) -> None:
     """
-    Transforms and validates currency exchange rates data from the bronze layer to the silver layer.
+    Transforms currency rates data while ensuring only ISO 4217 currencies are processed. It validates, partitions, and
+    writes the cleaned data to appropriate layers, distinguishing valid and quarantined rates for further processing
+    or review.
 
-    This function reads currency rates from a bronze Delta table, filters out rates corresponding to non-ISO 4217 currencies 
-    by joining with a validated list of ISO 4217 currencies, cleans up string data, validates timestamp and decimal fields, 
-    and performs further string-specific validation. The valid and invalid rows are then separated. The valid rows are saved 
-    to the silver Delta table, while invalid rows (quarantined records) are saved to a separate quarantine table.
-
-    :param spark: SparkSession object to interact with Spark APIs.
+    :param spark: The SparkSession object used to perform the transformations.
     :type spark: SparkSession
+
     :return: None
     """
     bronze_path_rates = os.path.join(BRONZE_OUT_DIR, 'rates')
     print(f'Reading Bronze rates from: {bronze_path_rates}')
 
+    # We deal only with ISO 4217 currencies
     iso_4217_currencies = (
         spark.read
         .format('delta')
         .load(silver_path_currencies)
         .select('short_code')
     )
+
+    if not iso_4217_currencies:
+        logger.error('No ISO 4217 currencies found in Silver layer. Cannot proceed with rate transformation.')
+        print('No ISO 4217 currencies found in Silver layer. Cannot proceed with rate transformation.')
+        return
 
     df_rates = spark.read.format('delta').load(bronze_path_rates)
 
@@ -163,14 +179,18 @@ def transform_rates(spark: SparkSession):
     print('Valid rates:')
     df_rates_valid.show()
 
-    (
-        df_rates_valid
-        .drop('_validation_errors')
-        .write.format("delta")
-        .mode("overwrite")
-        .partitionBy("curr_base")
-        .save(silver_path_rates)
-    )
+    try:
+        (
+            df_rates_valid
+            .drop('_validation_errors')
+            .write.format("delta")
+            .mode("overwrite")
+            .partitionBy("curr_base")
+            .save(silver_path_rates)
+        )
+    except Exception as e:
+        logger.exception(f'Error writing valid rates to {silver_path_rates}: {e}')
+        print(f'Error writing valid rates to {silver_path_rates}: {e}')
 
     print(f'Valid {df_rates_valid.count()} rates written to {silver_path_rates}')
 
@@ -180,13 +200,18 @@ def transform_rates(spark: SparkSession):
     quar_rates_count = df_rates_quarantine.count()
 
     if quar_rates_count > 0:
-        (
-            df_rates_quarantine
-            .write.format("delta")
-            .mode("overwrite")
-            .partitionBy("curr_base")
-            .save(silver_path_quarantine_currencies)
-        )
+        try:
+            (
+                df_rates_quarantine
+                .write.format("delta")
+                .mode("overwrite")
+                .partitionBy("curr_base")
+                .save(silver_path_quarantine_currencies)
+            )
+        except Exception as e:
+            logger.exception(f'Error writing quarantined rates to {silver_path_quarantine_currencies}: {e}')
+            print(f'Error writing quarantined rates to {silver_path_quarantine_currencies}: {e}')
+
         print(f'Quarantined {quar_rates_count} rates saved to: {silver_path_quarantine_rates}')
 
 
