@@ -10,7 +10,7 @@ services:
     working_dir: /app
     ports:
       - "4040:4040"                   # Spark UI — open http://localhost:4040 while jobs run
-    platform: linux/amd64             # works on both Intel and Apple Silicon (M1/M2)
+    platform: linux/amd64             # works on both Intel and Apple Silicon
     env_file:
       - .env
 
@@ -21,7 +21,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5442:5432"                   # 5441 on host to avoid conflict with local PostgreSQL
+      - "5442:5432"                   # 5442 on host to avoid conflict with local PostgreSQL
     volumes:
       - ./postgres_data:/var/lib/postgresql/data    # bind mount — visible in DataGrip/pgAdmin
     env_file:
