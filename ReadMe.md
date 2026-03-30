@@ -56,6 +56,15 @@ POSTGRES_PASSWORD=your-password   # must match DB_PASSWORD
 
 **3. Build the Docker image:**
 
+> [!IMPORTANT]
+>
+> If you are running on x86 platform, uncomment the following line in the `docker-compose.yml` file:
+> `#    platform: linux/amd64             # uncomment if needed for x86-only environments`
+>
+> On Apple Silicone Mac the pipeline run takes ages if that line is not commented out!
+
+after that run:
+
 ```bash
 docker compose build
 ```
