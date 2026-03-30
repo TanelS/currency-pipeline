@@ -72,7 +72,7 @@ def ingest_curr_codes(spark: SparkSession) -> Optional[DataFrame]:
             .save(out_path)
         )
     except Exception as e:
-        logger.exception(f'En error offurred during currency codes ingestion from CurrenyBeacon API: {e}')
+        logger.exception(f'En error occurred during currency codes ingestion from CurrenyBeacon API: {e}')
         print('Currency codes ingestion failed. Check logs for details.')
         return None
 
