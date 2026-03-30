@@ -30,7 +30,17 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 
 ## Setup
 
-**1. Copy the environment template and fill in your values:**
+**1. Install dependencies:**
+
+   with `uv` ( [install instructions](https://docs.astral.sh/uv/getting-started/installation/))  
+
+```bash  
+uv sync
+```
+
+Please note that the installed versions (PySpark, dbt, Python, etc) are a older to ensure compatibility with Docker image `apache/spark:3.5.5` which is used as main platform. The code which is in the repo is mapped into the `spark` container which have all necessary components for running the pipeline.
+
+**2. Copy the environment template and fill in your values:**
 
 ```bash
 cp .env-dummy .env
@@ -44,7 +54,7 @@ DB_PASSWORD=your-password
 POSTGRES_PASSWORD=your-password   # must match DB_PASSWORD
 ```
 
-**2. Build the Docker image:**
+**3. Build the Docker image:**
 
 ```bash
 docker compose build
@@ -166,5 +176,5 @@ Rules are defined in `conf/base/parameters.yml`. Key constraints:
 - **Local Delta instead of S3** — keeps the setup self-contained. The Spark code is cloud-agnostic; swapping the path for an `s3a://` URI is the only change required.
 - **PostgreSQL staging tables** — act as the interface between Spark and dbt so that dbt does not need Delta Lake support.
 - **dbt incremental models** for `dim_date` and `fact_rates` — repeated runs do not reprocess existing data.
-- **Quarantine rather than drop** — invalid rows are preserved for debugging.
-- The CurrencyBeacon free tier returns ~170 currencies. Ingesting each as a base produces ~28,900 rate pairs per run.
+- **Quarantine rather than drop** — invalid rows are preserved for debugging. Further quarantine processing pipelines are outside of the project scope right now.
+- The CurrencyBeacon free tier returns ~161 currencies. Ingesting each as a base produces ~25,921 rate pairs per run.
