@@ -13,4 +13,3 @@ RUN pip install --no-cache-dir \
 
 WORKDIR /app
 
-# No HADOOP_HOME needed — Linux container handles this natively
