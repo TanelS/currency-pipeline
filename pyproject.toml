@@ -1,5 +1,5 @@
 [project]
-name = "pipedrive-test-task-2"
+name = "pipedrive-test-task-aws"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11,<3.12"

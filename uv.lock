@@ -869,7 +869,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pipedrive-test-task-2"
+name = "pipedrive-test-task-aws"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
