@@ -12,7 +12,7 @@ services:
     working_dir: /app
     ports:
       - "4040:4040"                   # Spark UI — open http://localhost:4040 while jobs run
-#    platform: linux/amd64             # uncomment if needed for x86-only environments
+    #    platform: linux/amd64 # uncomment if needed for x86-only environments
     env_file:
       - .env
 
