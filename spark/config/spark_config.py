@@ -1,6 +1,11 @@
-from config import RUNNING_LOCAL
+from config import RUNNING_LOCAL, RUNNING_AWS, AWS_S3_BUCKET
 
-if RUNNING_LOCAL:
+if RUNNING_AWS:
+    RAW_DATA_DIR = f"s3a://{AWS_S3_BUCKET}/raw"
+    BRONZE_OUT_DIR = f"s3a://{AWS_S3_BUCKET}/bronze"
+    SILVER_DIR = f"s3a://{AWS_S3_BUCKET}/silver"
+
+elif RUNNING_LOCAL:
     RAW_DATA_DIR = "/app/data/raw"
     BRONZE_OUT_DIR = "/app/data/bronze"
     SILVER_DIR = "/app/data/silver"
