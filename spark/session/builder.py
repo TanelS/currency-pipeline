@@ -4,34 +4,32 @@ import config
 
 
 def get_spark(appname: str) -> SparkSession:
-    """
-    Initializes and returns a SparkSession configured for use with Delta Lake.
-
-    This function creates a SparkSession with Delta Lake support enabled,
-    configures Spark SQL extensions, and sets the catalog to DeltaCatalog. When
-    running in a local environment, it additionally configures the session with
-    appropriate settings for local execution and required dependencies.
-
-    :param appname: The name of the Spark application to set for the session.
-    :type appname: str
-    :return: A SparkSession instance configured with Delta Lake support.
-    :rtype: SparkSession
-    """
     builder = (
         SparkSession.builder.appName(appname)
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
-            'spark.sql.extensions',
-            'io.delta.sql.DeltaSparkSessionExtension'
-        )
-        .config(
-            'spark.sql.catalog.spark_catalog',
-            'org.apache.spark.sql.delta.catalog.DeltaCatalog',
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
         )
     )
-    if config.RUNNING_LOCAL:
-        builder = builder.master('local[*]').config(
-            'spark.jars.packages',
-            'io.delta:delta-spark_2.12:3.1.0,'
-            'org.postgresql:postgresql:42.7.3',
+    if config.RUNNING_AWS:
+        builder = (
+            builder.master("local[*]")
+            .config(
+                "spark.jars.packages",
+                "io.delta:delta-spark_2.12:3.1.0,"
+                "org.apache.hadoop:hadoop-aws:3.3.4,"
+                "org.postgresql:postgresql:42.7.3",
+            )
+            .config("spark.hadoop.fs.s3a.access.key", config.AWS_ACCESS_KEY_ID)
+            .config("spark.hadoop.fs.s3a.secret.key", config.AWS_SECRET_ACCESS_KEY)
+            .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+            .config("spark.hadoop.fs.s3a.region", "eu-north-1")
+        )
+
+    elif config.RUNNING_LOCAL:
+        builder = builder.master("local[*]").config(
+            "spark.jars.packages",
+            "io.delta:delta-spark_2.12:3.1.0,org.postgresql:postgresql:42.7.3",
         )
     return builder.getOrCreate()

@@ -44,7 +44,15 @@ DATABASE_NAME = config_environment["DB_DATABASE"]
 CURRENCYBEACON_API_KEY = config_environment["CURRENCYBEACON_API_KEY"]
 CURRENCYBEACON_API_ROOT = config_environment["CURRENCYBEACON_API_ROOT"]
 RUNNING_LOCAL = config_environment["RUNNING_LOCAL"].lower() in ("1", "true", "yes")
+RUNNING_AWS = config_environment["RUNNING_AWS"].lower() in ("1", "true", "yes")
+
+AWS_ACCESS_KEY_ID = config_environment["AWS_ACCESS_KEY_ID"]
+AWS_SECRET_ACCESS_KEY = config_environment["AWS_SECRET_ACCESS_KEY"]
+AWS_S3_BUCKET = config_environment["AWS_S3_BUCKET"]
 
 # Actually Spark code uses those too, so the prefix DBT_ is just arbitrary:
 DBT_POSTGRES_HOST = config_environment["DBT_POSTGRES_HOST"]
 DBT_POSTGRES_PORT = config_environment["DBT_POSTGRES_PORT"]
+
+if RUNNING_LOCAL and RUNNING_AWS:  # to handle the possible misconfiguration in .env
+    raise ValueError("RUNNING_LOCAL and RUNNING_AWS cannot both be True")
