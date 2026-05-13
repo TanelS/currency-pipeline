@@ -140,6 +140,68 @@ docker compose run --remove-orphans -p 4040:4040 spark dbt run --project-dir dbt
 
 ---
 
+## AWS Glue Catalog Setup
+
+The Bronze and Silver layers are queryable via Amazon Athena once the Glue catalog tables are created manually in the AWS Console. This is a one-time setup per environment.
+
+Go to **AWS Glue → Databases → movies_db → Add table** for each table below.
+
+> **Note:** The database is named `movies_db` for historical reasons — it was created during initial Glue exploration. The name has no functional impact.
+
+> **Note:** Select **Parquet** as the data format for all four tables. This allows Athena to read the underlying Parquet files directly. See Assumptions & Decisions for the known limitation of this approach.
+
+### bronze_currencies
+
+**S3 path:** `s3://your-bucket/bronze/currencies/`
+
+```json
+[
+  {"Name": "id", "Type": "int"},
+  {"Name": "name", "Type": "string"},
+  {"Name": "short_code", "Type": "string"},
+  {"Name": "code", "Type": "string"},
+  {"Name": "precision", "Type": "int"},
+  {"Name": "subunit", "Type": "int"},
+  {"Name": "symbol", "Type": "string"},
+  {"Name": "symbol_first", "Type": "boolean"},
+  {"Name": "decimal_mark", "Type": "string"},
+  {"Name": "thousands_separator", "Type": "string"},
+  {"Name": "_ingested_at", "Type": "timestamp"},
+  {"Name": "_source_file", "Type": "string"},
+  {"Name": "_batch_id", "Type": "string"}
+]
+```
+
+### bronze_rates
+
+**S3 path:** `s3://your-bucket/bronze/rates/`
+
+```json
+[
+  {"Name": "curr_base", "Type": "string"},
+  {"Name": "currency", "Type": "string"},
+  {"Name": "rate_date", "Type": "timestamp"},
+  {"Name": "rate", "Type": "decimal(20,10)"},
+  {"Name": "_ingested_at", "Type": "timestamp"},
+  {"Name": "_source_file", "Type": "string"},
+  {"Name": "_batch_id", "Type": "string"}
+]
+```
+
+### silver_currencies
+
+**S3 path:** `s3://your-bucket/silver/currencies/`
+
+Same schema as `bronze_currencies` above.
+
+### silver_rates
+
+**S3 path:** `s3://your-bucket/silver/rates/`
+
+Same schema as `bronze_rates` above.
+
+---
+
 ## Scheduling
 
 **Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps naturally to a task in a DAG, with dependency management, retries, and observability built in. Airflow integration is planned as a next development step.
@@ -199,4 +261,6 @@ Rules are defined in `conf/base/parameters.yml`. Key constraints:
 - **dbt incremental models** for `dim_date` and `fact_rates` — repeated runs do not reprocess existing data.
 - **Quarantine rather than drop** — invalid rows are preserved for debugging. Further quarantine processing pipelines are outside of the project scope right now.
 - **Athena queries Bronze/Silver as Parquet, not native Delta** — Glue catalog tables for Bronze and Silver layers are registered as Parquet format. Athena reads the underlying Parquet files directly, bypassing the Delta transaction log. This means Athena does not benefit from Delta's time travel or snapshot isolation — it reads all Parquet files present in the folder. Full Delta Lake support via the Athena Delta connector is a future improvement.
+- **PostgreSQL stands in for Redshift** — in a production pipeline the Gold layer (star schema) would live in Amazon Redshift, a columnar data warehouse optimised for analytical queries at scale. The dimensional model (`dim_currencies`, `dim_date`, `fact_rates`) is exactly the structure Redshift is designed for. PostgreSQL is used here as a cost-free equivalent; the dbt models would transfer to Redshift with only a `profiles.yml` connection change. Redshift is a paid AWS service not available on the free tier.
+- **Glue and Athena are managed via AWS Console only** — the PyCharm AWS Toolkit does not support Glue catalog or Athena. The Glue tables (Bronze and Silver) were created manually in the console and are not managed from the repository. As a result the repo is partially detached from the AWS catalog layer — the pipeline writes Delta Lake files to S3 correctly, but Glue table definitions and Athena queries exist outside the codebase. Infrastructure-as-code tooling (e.g. AWS CDK or Terraform) would be the proper solution to manage these as part of the project.
 - The CurrencyBeacon free tier returns ~161 currencies. Ingesting each as a base produces ~25,921 rate pairs per run.
