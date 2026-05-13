@@ -204,7 +204,9 @@ Same schema as `bronze_rates` above.
 
 ## Scheduling
 
-**Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps naturally to a task in a DAG, with dependency management, retries, and observability built in. Airflow integration is planned as a next development step.
+**Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps naturally to a task in a DAG, with dependency management, retries, and observability built in. Airflow integration is planned as a next development step, running locally via Docker Compose as recommended by the official Airflow documentation for local development.
+
+**AWS Step Functions** is the AWS-native alternative — a serverless workflow engine where the pipeline is defined as a state machine. It integrates natively with EMR, Lambda, and ECS. For this project it is not practical since the pipeline runs Spark jobs in Docker, which Step Functions cannot invoke directly. In a production deployment where Spark runs on EMR, Step Functions would be the natural orchestration choice.
 
 ---
 
