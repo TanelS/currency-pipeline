@@ -204,9 +204,87 @@ Same schema as `bronze_rates` above.
 
 ## Scheduling
 
-**Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps naturally to a task in a DAG, with dependency management, retries, and observability built in. Airflow integration is planned as a next development step, running locally via Docker Compose as recommended by the official Airflow documentation for local development.
+**AWS Step Functions** is the AWS-native orchestration alternative — a serverless workflow engine where the pipeline is defined as a state machine. It integrates natively with EMR, Lambda, and ECS. For this project it is not practical since the pipeline runs Spark jobs in Docker, which Step Functions cannot invoke directly. In a production deployment where Spark runs on EMR, Step Functions would be the natural orchestration choice.
 
-**AWS Step Functions** is the AWS-native alternative — a serverless workflow engine where the pipeline is defined as a state machine. It integrates natively with EMR, Lambda, and ECS. For this project it is not practical since the pipeline runs Spark jobs in Docker, which Step Functions cannot invoke directly. In a production deployment where Spark runs on EMR, Step Functions would be the natural orchestration choice.
+### Apache Airflow (local)
+
+**Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps naturally to a task in a DAG, with dependency management, retries, and observability built in. Airflow runs locally via Docker Compose as recommended by the official Airflow documentation for local development.
+
+#### Setup
+
+**1. Download the official Airflow Compose file:**
+
+```bash
+curl -LfO 'https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml'
+```
+
+Rename the downloaded file to `docker-compose.airflow.yml`. Then make these changes to it:
+
+- Rename the `postgres` service to `airflow-postgres` (to avoid conflict with the pipeline's PostgreSQL) and update all references to it
+- Update `AIRFLOW__DATABASE__SQL_ALCHEMY_CONN` and `AIRFLOW__CELERY__RESULT_BACKEND` — change `@postgres/` to `@airflow-postgres/` in both connection strings
+- Set `AIRFLOW__CORE__LOAD_EXAMPLES: 'false'`
+- Update `depends_on` references from `postgres` to `airflow-postgres`
+- Change the `airflow-postgres` volume from a named volume to a bind mount: `./airflow/postgres_data:/var/lib/postgresql/data` and remove `postgres-db-volume` from the `volumes:` section at the bottom
+- Add a dedicated network at the bottom to isolate Airflow from the pipeline's PostgreSQL:
+
+```yaml
+networks:
+  default:
+    name: airflow-network
+```
+
+**2. Create the Airflow directories:**
+
+```
+airflow/
+  dags/
+  logs/
+  plugins/
+```
+
+**3. Generate a Fernet key** (required for encrypting Airflow credentials):
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+**4. Add to `.env`:**
+
+```env
+FERNET_KEY=your-generated-fernet-key
+AIRFLOW_PROJ_DIR=./airflow
+AIRFLOW_UID=50000
+```
+
+#### Running Airflow
+
+**First time only — initialise the database and create admin user:**
+
+```bash
+docker compose -f docker-compose.airflow.yml up airflow-init
+```
+
+Wait for `exited with code 0` before proceeding.
+
+**Start all Airflow services:**
+
+```bash
+docker compose -f docker-compose.airflow.yml up -d
+```
+
+Airflow UI is available at **http://localhost:8080** (default credentials: `airflow` / `airflow`).
+
+**Stop Airflow:**
+
+```bash
+docker compose -f docker-compose.airflow.yml down
+```
+
+**Run pipeline and Airflow together:**
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.airflow.yml up -d
+```
 
 ---
 
