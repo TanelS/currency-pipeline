@@ -198,4 +198,5 @@ Rules are defined in `conf/base/parameters.yml`. Key constraints:
 - **PostgreSQL staging tables** — act as the interface between Spark and dbt so that dbt does not need Delta Lake support.
 - **dbt incremental models** for `dim_date` and `fact_rates` — repeated runs do not reprocess existing data.
 - **Quarantine rather than drop** — invalid rows are preserved for debugging. Further quarantine processing pipelines are outside of the project scope right now.
+- **Athena queries Bronze/Silver as Parquet, not native Delta** — Glue catalog tables for Bronze and Silver layers are registered as Parquet format. Athena reads the underlying Parquet files directly, bypassing the Delta transaction log. This means Athena does not benefit from Delta's time travel or snapshot isolation — it reads all Parquet files present in the folder. Full Delta Lake support via the Athena Delta connector is a future improvement.
 - The CurrencyBeacon free tier returns ~161 currencies. Ingesting each as a base produces ~25,921 rate pairs per run.
