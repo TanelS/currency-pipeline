@@ -14,18 +14,7 @@ logger = logging.getLogger("Currencies-rates-to-db-staging")
 
 
 def load_currencies_to_stage(spark) -> None:
-    """
-    Loads currency data from the Silver table into the Staging table, performing necessary
-    pre-processing steps including row counting, foreign key constraint management, and
-    primary key assignment.
-
-    The function reads data from a Silver Delta table and writes it to a staging PostgreSQL
-    table, managing table constraints before and after the data load to ensure consistency.
-
-    :param spark: Apache Spark session instance used to interact with the data source.
-    :type spark: pyspark.sql.SparkSession
-    :return: None
-    """
+    """Overwrites currencies_stage from Silver; drops FK constraints before write, reassigns PK after."""
     print(f"Reading Silver currencies from: {silver_path_currencies}")
     df = spark.read.format("delta").load(silver_path_currencies)
     print(f"  Rows: {df.count():,}")
@@ -45,7 +34,7 @@ def load_currencies_to_stage(spark) -> None:
                 )  # noqa
             conn.commit()
     except Exception as e:
-        logger.exception(f"Failed to drop foreign key constraints: {e}")
+        logger.exception("Failed to drop foreign key constraints")
 
     writer = df.write.mode("overwrite").option("truncate", "true")
     writer.jdbc(JDBC_URL, "public.currencies_stage", properties=jdbc_props)
@@ -62,21 +51,11 @@ def load_currencies_to_stage(spark) -> None:
                 )  # noqa
             conn.commit()
         except Exception as e:
-            logger.exception(
-                f"Failed to add primary key to currencies stage table: {e}"
-            )
+            logger.exception("Failed to add primary key to currencies stage table")
 
 
 def load_rates_to_stage(spark) -> None:
-    """
-    Loads rate data from the Silver Delta table into a staging table in a database. The function reads data
-    from a Delta table using the provided Spark session, writes it into a staging table, and updates
-    database constraints to update primary and foreign key relationships for the staging table.
-
-    :param spark: Spark session object used to interact with Spark for reading the Delta table.
-    :type spark: pyspark.sql.SparkSession
-    :return: None
-    """
+    """Overwrites rates_stage from Silver; reassigns PK and FK constraints referencing currencies_stage after write."""
     print(f"Reading Silver rates from: {silver_path_rates}")
 
     df = spark.read.format("delta").load(silver_path_rates)
@@ -114,7 +93,7 @@ def load_rates_to_stage(spark) -> None:
                 )
             conn.commit()
         except Exception as e:
-            logger.exception(f"Failed to add PK and FK keyt to rates stage table: {e}")
+            logger.exception("Failed to add PK and FK to rates stage table")
 
 
 if __name__ == "__main__":

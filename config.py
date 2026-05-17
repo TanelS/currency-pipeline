@@ -14,8 +14,8 @@ config_environment = {
 }
 
 # logfile location and size
-LOG_FILENAME = os.path.join(Path(__file__).parent, "logs", "pipedrive_test.log")
-LOG_FILESIZE = 3  # logfile size in Megabytes, in total there will be two files (for a test 1MB is enough=
+LOG_FILENAME = os.path.join(Path(__file__).parent, "logs", "currency_pipeline.log")
+LOG_FILESIZE = 3  # logfile size in Megabytes, two rotating files total
 
 # Ensure UTC timestamps in logs
 logging.Formatter.converter = time.gmtime
@@ -37,8 +37,6 @@ logging.basicConfig(
 
 DATABASE_USERNAME = config_environment["DB_USERNAME"]
 DATABASE_PASSWORD = config_environment["DB_PASSWORD"]
-DATABASE_HOST = config_environment["DB_HOST"]
-DATABASE_PORT = config_environment["DB_PORT"]
 DATABASE_NAME = config_environment["DB_DATABASE"]
 
 CURRENCYBEACON_API_KEY = config_environment["CURRENCYBEACON_API_KEY"]
