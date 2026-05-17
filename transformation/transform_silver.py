@@ -79,7 +79,7 @@ def transform_currencies(spark: SparkSession) -> None:
             .mode("overwrite")
             .save(silver_path_currencies)
         )
-    except Exception as e:
+    except Exception:
         logger.exception(f'Failed to save valid currencies to {silver_path_currencies}')
         return
 
@@ -95,7 +95,7 @@ def transform_currencies(spark: SparkSession) -> None:
                 .mode("append")
                 .save(silver_path_quarantine_currencies)
             )
-        except Exception as e:
+        except Exception:
             logger.exception(f'Failed to save quarantined currencies to {silver_path_quarantine_currencies}')
 
         print(f'Quarantined {quar_curr_count} currencies saved to: {silver_path_quarantine_currencies}')
@@ -159,9 +159,8 @@ def transform_rates(spark: SparkSession) -> None:
             .partitionBy("curr_base")
             .save(silver_path_rates)
         )
-    except Exception as e:
+    except Exception:
         logger.exception(f'Error writing valid rates to {silver_path_rates}')
-        print(f'Error writing valid rates to {silver_path_rates}: {e}')
 
     print(f'Valid {df_rates_valid.count()} rates written to {silver_path_rates}')
 
@@ -179,9 +178,8 @@ def transform_rates(spark: SparkSession) -> None:
                 .partitionBy("curr_base")
                 .save(silver_path_quarantine_rates)
             )
-        except Exception as e:
+        except Exception:
             logger.exception(f'Error writing quarantined rates to {silver_path_quarantine_rates}')
-            print(f'Error writing quarantined rates to {silver_path_quarantine_rates}: {e}')
 
         print(f'Quarantined {quar_rates_count} rates saved to: {silver_path_quarantine_rates}')
 

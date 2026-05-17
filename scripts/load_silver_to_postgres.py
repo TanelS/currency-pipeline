@@ -33,7 +33,7 @@ def load_currencies_to_stage(spark) -> None:
                     "ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS curr_fk"
                 )  # noqa
             conn.commit()
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to drop foreign key constraints")
 
     writer = df.write.mode("overwrite").option("truncate", "true")
@@ -50,7 +50,7 @@ def load_currencies_to_stage(spark) -> None:
                     "ALTER TABLE public.currencies_stage ADD PRIMARY KEY (short_code)"
                 )  # noqa
             conn.commit()
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to add primary key to currencies stage table")
 
 
@@ -92,7 +92,7 @@ def load_rates_to_stage(spark) -> None:
                     "ALTER TABLE public.rates_stage ADD CONSTRAINT curr_fk FOREIGN KEY (currency) REFERENCES public.currencies_stage (short_code)"
                 )
             conn.commit()
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to add PK and FK to rates stage table")
 
 

@@ -14,6 +14,6 @@ def get_currencies() -> Optional[dict]:
 
     try:
         return data.get("response")
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to validate currencies response")
         return None
