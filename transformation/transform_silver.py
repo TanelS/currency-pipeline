@@ -45,26 +45,7 @@ silver_path_quarantine_rates = os.path.join(SILVER_DIR, 'rates_quarantine')
 
 
 def transform_currencies(spark: SparkSession) -> None:
-    """
-    Transforms and validates currency data from the Bronze layer, cleans string columns,
-    ensures integer and boolean column rules are met, and segregates the valid and
-    quarantined records into corresponding Silver layer paths.
-
-    During the execution, the method performs the following tasks:
-    - Reads the Bronze currency data
-    - Cleans string columns to remove unwanted formatting or inconsistencies
-    - Validates integer and boolean columns based on predefined rules
-    - Identifies and separates valid and quarantined records
-    - Writes valid records to the specified Silver path for validated currencies
-    - Writes quarantined records (if any) to the quarantine path for further inspection
-
-    :param spark: An instance of the SparkSession used for reading and writing data.
-    :type spark: SparkSession
-
-    :return: This function does not return any value. The output is saved to Delta tables
-             at the Silver layer for valid and quarantined currencies.
-    :rtype: None
-    """
+    """Validates Bronze currencies against rules in parameters.yml; valid rows → Silver, invalid → quarantine."""
     print(f'Reading Bronze currencies from: {bronze_path_currencies}')
 
     df_curr = spark.read.format('delta').load(bronze_path_currencies)
@@ -99,7 +80,7 @@ def transform_currencies(spark: SparkSession) -> None:
             .save(silver_path_currencies)
         )
     except Exception as e:
-        logger.exception(f'Failed to save valid currencies to {silver_path_currencies}: {e}')
+        logger.exception(f'Failed to save valid currencies to {silver_path_currencies}')
         return
 
     print(f'Valid {df_currencies_valid.count()} currencies saved to: {silver_path_currencies}')
@@ -115,23 +96,13 @@ def transform_currencies(spark: SparkSession) -> None:
                 .save(silver_path_quarantine_currencies)
             )
         except Exception as e:
-            logger.exception(f'Failed to save quarantined currencies to {silver_path_quarantine_currencies}: {e}')
+            logger.exception(f'Failed to save quarantined currencies to {silver_path_quarantine_currencies}')
 
         print(f'Quarantined {quar_curr_count} currencies saved to: {silver_path_quarantine_currencies}')
 
 
 def transform_rates(spark: SparkSession) -> None:
-    """
-    Transforms currency rates data while ensuring only ISO 4217 currencies are processed. It validates, partitions, and
-    writes the cleaned data to appropriate layers, distinguishing valid and quarantined rates for further processing
-    or review.
-
-    :param spark: The SparkSession object used to perform the transformations.
-    :type spark: SparkSession
-
-    :return: None
-    """
-    bronze_path_rates = os.path.join(BRONZE_OUT_DIR, 'rates')
+    """Filters Bronze rates to ISO 4217 currencies only, takes the latest batch, validates, and writes to Silver."""
     print(f'Reading Bronze rates from: {bronze_path_rates}')
 
     # We deal only with ISO 4217 currencies
@@ -189,7 +160,7 @@ def transform_rates(spark: SparkSession) -> None:
             .save(silver_path_rates)
         )
     except Exception as e:
-        logger.exception(f'Error writing valid rates to {silver_path_rates}: {e}')
+        logger.exception(f'Error writing valid rates to {silver_path_rates}')
         print(f'Error writing valid rates to {silver_path_rates}: {e}')
 
     print(f'Valid {df_rates_valid.count()} rates written to {silver_path_rates}')
@@ -209,7 +180,7 @@ def transform_rates(spark: SparkSession) -> None:
                 .save(silver_path_quarantine_rates)
             )
         except Exception as e:
-            logger.exception(f'Error writing quarantined rates to {silver_path_quarantine_rates}: {e}')
+            logger.exception(f'Error writing quarantined rates to {silver_path_quarantine_rates}')
             print(f'Error writing quarantined rates to {silver_path_quarantine_rates}: {e}')
 
         print(f'Quarantined {quar_rates_count} rates saved to: {silver_path_quarantine_rates}')

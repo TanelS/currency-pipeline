@@ -4,6 +4,7 @@ import config
 
 
 def get_spark(appname: str) -> SparkSession:
+    """Builds SparkSession with Delta + S3 jars for AWS mode, or Delta + JDBC only for local mode."""
     builder = (
         SparkSession.builder.appName(appname)
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")

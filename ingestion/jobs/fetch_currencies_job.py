@@ -7,17 +7,7 @@ logger = logging.getLogger("Currency_symbols_fetch")
 
 
 def get_currencies() -> Optional[dict]:
-    """
-    Fetches a list of currencies from an external API and returns the data in dictionary format.
-
-    This function retrieves the currency data by making a request to an external API. If
-    the API does not return any data, it returns None. In case of an issue while accessing
-    the "response" key from the returned data, it logs the exception and also returns None.
-
-    :return: A dictionary containing currency data or None if no data is available or an
-        error occurs.
-    :rtype: Optional[dict]
-    """
+    """Returns the 'response' list from the CurrencyBeacon currencies endpoint, or None on failure."""
     data = fetch_from_api("currencies")
     if not data:
         return None
@@ -25,5 +15,5 @@ def get_currencies() -> Optional[dict]:
     try:
         return data.get("response")
     except Exception as e:
-        logger.exception(f"Failed to validate currencies response: {e}")
+        logger.exception("Failed to validate currencies response")
         return None

@@ -188,6 +188,21 @@ wheels = [
 ]
 
 [[package]]
+name = "apache-airflow-providers-apache-spark"
+version = "5.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apache-airflow" },
+    { name = "apache-airflow-providers-common-compat" },
+    { name = "grpcio-status" },
+    { name = "pyspark" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/00/c3/e691bdb2f99e1cce8534724903928570baae854eade28fa757e5b02f198d/apache_airflow_providers_apache_spark-5.6.0.tar.gz", hash = "sha256:c615a0c0b68e0a9d4a3f717e951c0d7394c74b96fb5bfabe4d574e334034d800", size = 130817, upload-time = "2026-03-13T17:31:02.074Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/0f/78bac949404d6d73a8f4cf6ab3473a2bbe301614a18f5ada1f42af9c4c3e/apache_airflow_providers_apache_spark-5.6.0-py3-none-any.whl", hash = "sha256:9a7c916d9cc6a5b4b22cdcd53c9a897114951eb542c2991e48d509a67ef31a4b", size = 48764, upload-time = "2026-03-13T17:30:21.705Z" },
+]
+
+[[package]]
 name = "apache-airflow-providers-common-compat"
 version = "1.14.3"
 source = { registry = "https://pypi.org/simple" }
@@ -227,6 +242,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ed/37/c1dccd9987e8df2c825fba81527e37d4e779507ae4f8763e93a2cc467858/apache_airflow_providers_common_sql-1.36.0.tar.gz", hash = "sha256:e1f81d942eb8f6df661b1142c3b2865daef1d29317947cfc3ccbfc6ae960eb72", size = 131813, upload-time = "2026-05-11T15:44:53.208Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/25/9f/4e9d0fcdb837d917817464e0eba596f3f8c2e7207f68dafca11261ae8ef3/apache_airflow_providers_common_sql-1.36.0-py3-none-any.whl", hash = "sha256:2e6e3c61cfdc391bf71eb783c1b785e7bfde3bd2d638c632fea4d438a6e2a240", size = 92533, upload-time = "2026-05-11T15:44:28.995Z" },
+]
+
+[[package]]
+name = "apache-airflow-providers-docker"
+version = "4.5.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apache-airflow" },
+    { name = "apache-airflow-providers-common-compat" },
+    { name = "docker" },
+    { name = "python-dotenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/c8/80ab9181b7768385cff2d2bf863adcf6087bf5ee1bbf22451796a7d589dd/apache_airflow_providers_docker-4.5.5.tar.gz", hash = "sha256:3fa057cd1f3cbf6ba5e5f24ecd195305b8dec0e62fb1d8d8d718925770495708", size = 110676, upload-time = "2026-04-12T14:21:54.761Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/a4/c9b5fd39bd19a1e176166a3b5b17c0a3184554333dcb27a0cfb629647beb/apache_airflow_providers_docker-4.5.5-py3-none-any.whl", hash = "sha256:c84fdd1d33a99c7401aec61e53cd0c6fca110893746c6700f4ebe340abe45011", size = 33339, upload-time = "2026-04-12T14:20:08.033Z" },
 ]
 
 [[package]]
@@ -799,6 +829,20 @@ wheels = [
 ]
 
 [[package]]
+name = "docker"
+version = "7.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
+    { name = "requests" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/91/9b/4a2ea29aeba62471211598dac5d96825bb49348fa07e906ea930394a83ce/docker-7.1.0.tar.gz", hash = "sha256:ad8c70e6e3f8926cb8a92619b832b4ea5299e2831c14284663184e200546fa6c", size = 117834, upload-time = "2024-05-23T11:13:57.216Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/26/57c6fb270950d476074c087527a558ccb6f4436657314bfb6cdf484114c4/docker-7.1.0-py3-none-any.whl", hash = "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0", size = 147774, upload-time = "2024-05-23T11:13:55.01Z" },
+]
+
+[[package]]
 name = "email-validator"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -956,6 +1000,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/62/29/73ef0141b4732ff5eacd68430ff2512a65c004696997f70476a83e548e7e/grpcio-1.80.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:ce1794f4ea6cc3ca29463f42d665c32ba1b964b48958a66497917fe9069f26e6", size = 7851641, upload-time = "2026-03-30T08:47:05.462Z" },
     { url = "https://files.pythonhosted.org/packages/46/69/abbfa360eb229a8623bab5f5a4f8105e445bd38ce81a89514ba55d281ad0/grpcio-1.80.0-cp311-cp311-win32.whl", hash = "sha256:51b4a7189b0bef2aa30adce3c78f09c83526cf3dddb24c6a96555e3b97340440", size = 4154368, upload-time = "2026-03-30T08:47:08.027Z" },
     { url = "https://files.pythonhosted.org/packages/6f/d4/ae92206d01183b08613e846076115f5ac5991bae358d2a749fa864da5699/grpcio-1.80.0-cp311-cp311-win_amd64.whl", hash = "sha256:02e64bb0bb2da14d947a49e6f120a75e947250aebe65f9629b62bb1f5c14e6e9", size = 4894235, upload-time = "2026-03-30T08:47:10.839Z" },
+]
+
+[[package]]
+name = "grpcio-status"
+version = "1.62.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "googleapis-common-protos" },
+    { name = "grpcio" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7c/d7/013ef01c5a1c2fd0932c27c904934162f69f41ca0f28396d3ffe4d386123/grpcio-status-1.62.3.tar.gz", hash = "sha256:289bdd7b2459794a12cf95dc0cb727bd4a1742c37bd823f760236c937e53a485", size = 13063, upload-time = "2024-08-06T00:37:08.003Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/40/972271de05f9315c0d69f9f7ebbcadd83bc85322f538637d11bb8c67803d/grpcio_status-1.62.3-py3-none-any.whl", hash = "sha256:f9049b762ba8de6b1086789d8315846e094edac2c50beaf462338b301a8fd4b8", size = 14448, upload-time = "2024-08-06T00:30:15.702Z" },
 ]
 
 [[package]]
@@ -1798,6 +1856,9 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "apache-airflow" },
+    { name = "apache-airflow-providers-apache-spark" },
+    { name = "apache-airflow-providers-docker" },
+    { name = "apache-airflow-providers-standard" },
     { name = "boto3" },
     { name = "cryptography" },
     { name = "dbt-core" },
@@ -1821,6 +1882,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "apache-airflow", specifier = ">=3.2.1" },
+    { name = "apache-airflow-providers-apache-spark", specifier = ">=5.6.0" },
+    { name = "apache-airflow-providers-docker", specifier = ">=4.5.5" },
+    { name = "apache-airflow-providers-standard", specifier = ">=1.13.0" },
     { name = "boto3", specifier = ">=1.43.6" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dbt-core", specifier = "==1.8.7" },
@@ -2199,6 +2263,16 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/56/db/b8721d71d945e6a8ac63c0fc900b2067181dbb50805958d4d4661cf7d277/pytz-2026.1.post1.tar.gz", hash = "sha256:3378dde6a0c3d26719182142c56e60c7f9af7e968076f31aae569d72a0358ee1", size = 321088, upload-time = "2026-03-03T07:47:50.683Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/99/781fe0c827be2742bcc775efefccb3b048a3a9c6ce9aec0cbf4a101677e5/pytz-2026.1.post1-py2.py3-none-any.whl", hash = "sha256:f2fd16142fda348286a75e1a524be810bb05d444e5a081f37f7affc635035f7a", size = 510489, upload-time = "2026-03-03T07:47:49.167Z" },
+]
+
+[[package]]
+name = "pywin32"
+version = "311"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7c/af/449a6a91e5d6db51420875c54f6aff7c97a86a3b13a0b4f1a5c13b988de3/pywin32-311-cp311-cp311-win32.whl", hash = "sha256:184eb5e436dea364dcd3d2316d577d625c0351bf237c4e9a5fabbcfa5a58b151", size = 8697031, upload-time = "2025-07-14T20:13:13.266Z" },
+    { url = "https://files.pythonhosted.org/packages/51/8f/9bb81dd5bb77d22243d33c8397f09377056d5c687aa6d4042bea7fbf8364/pywin32-311-cp311-cp311-win_amd64.whl", hash = "sha256:3ce80b34b22b17ccbd937a6e78e7225d80c52f5ab9940fe0506a1a16f3dab503", size = 9508308, upload-time = "2025-07-14T20:13:15.147Z" },
+    { url = "https://files.pythonhosted.org/packages/44/7b/9c2ab54f74a138c491aba1b1cd0795ba61f144c711daea84a88b63dc0f6c/pywin32-311-cp311-cp311-win_arm64.whl", hash = "sha256:a733f1388e1a842abb67ffa8e7aad0e70ac519e09b0f6a784e65a136ec7cefd2", size = 8703930, upload-time = "2025-07-14T20:13:16.945Z" },
 ]
 
 [[package]]

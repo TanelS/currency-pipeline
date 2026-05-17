@@ -3,18 +3,19 @@ name: pipedrive-test-task-aws
 services:
 
   spark:
-    build: .                          # uses Dockerfile in project root
+    build: .
+    image: pipeline-spark                 # explicit name so DockerOperator can reference it
     environment:
-      - SPARK_MODE=master
       - PYTHONPATH=/app
     volumes:
-      - .:/app                        # mounts entire project into /app
+      - .:/app                            # mounts entire project into /app
     working_dir: /app
     ports:
-      - "4040:4040"                   # Spark UI — open http://localhost:4040 while jobs run
-    #    platform: linux/amd64 # uncomment if needed for x86-only environments
+      - "4040:4040"                       # Spark UI — open http://localhost:4040 while jobs run
     env_file:
       - .env
+    networks:
+      - pipeline-network
 
   postgres:
     image: postgres:16
@@ -23,8 +24,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5443:5432"                   # 5442 on host to avoid conflict with local PostgreSQL
+      - "5443:5432"                       # 5443 on host to avoid conflict with local PostgreSQL
     volumes:
       - ./postgres_data:/var/lib/postgresql/data    # bind mount — visible in DataGrip/pgAdmin
     env_file:
       - .env
+    networks:
+      - pipeline-network
+
+networks:
+  pipeline-network:
+    name: pipeline-network

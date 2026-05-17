@@ -11,4 +11,5 @@ RUN pip install --no-cache-dir \
     psycopg[binary] \
     python-dotenv
 
+ENV PYTHONPATH=/app
 WORKDIR /app

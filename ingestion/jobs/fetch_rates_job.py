@@ -7,21 +7,7 @@ logger = logging.getLogger("Currency_data_fetch")
 
 
 def get_rates(params: dict) -> Optional[dict]:
-    """
-    Fetches and processes exchange rate data based on the provided parameters.
-
-    This function retrieves the latest exchange rates from an API, validates the
-    response, and ensures data integrity. If the response contains invalid or
-    unexpected data such as empty rates lists, appropriate warnings are logged.
-    Any errors during validation are also logged.
-
-    :param params: A dictionary containing query parameters for the API. The key
-        "base" can specify the base currency for the conversion rates.
-    :type params: dict
-    :return: A dictionary containing the response data if the fetch and validation
-        are successful, otherwise None.
-    :rtype: Optional[dict]
-    """
+    """Fetches latest rates for the given base currency; returns None if API returns empty or invalid data."""
     data = fetch_from_api("latest", params)
     base_currency = params.get("base")
     if not data:
@@ -38,5 +24,5 @@ def get_rates(params: dict) -> Optional[dict]:
         return data.get("response")
     except Exception as e:
         print(f"Failed to validate rates payload: {e}")
-        logger.exception(f"Failed to validate rates for {base_currency}: {e}")
+        logger.exception(f"Failed to validate rates for {base_currency}")
         return None
