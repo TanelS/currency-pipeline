@@ -342,6 +342,10 @@ FROM apache/airflow:3.2.1
 RUN pip install apache-airflow-providers-docker
 ```
 
+```bash
+docker compose -f docker-compose.airflow.yml build
+```
+
 **3. Create the Airflow directories:**
 
 ```
