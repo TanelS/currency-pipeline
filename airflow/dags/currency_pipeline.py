@@ -25,6 +25,7 @@ with DAG(
     start_date=datetime(2026, 1, 1),
     schedule="0 6 * * *",
     catchup=False,
+    max_active_runs=1,
 ) as dag:
 
     bronze = DockerOperator(

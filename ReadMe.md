@@ -342,6 +342,10 @@ FROM apache/airflow:3.2.1
 RUN pip install apache-airflow-providers-docker
 ```
 
+```bash
+docker compose -f docker-compose.airflow.yml build
+```
+
 **3. Create the Airflow directories:**
 
 ```
@@ -391,6 +395,9 @@ docker compose -f docker-compose.airflow.yml up -d
 ```
 
 Airflow UI is available at **http://localhost:8080** (default credentials: `airflow` / `airflow`).
+
+> [!NOTE]
+> The DAG is configured with `max_active_runs=1`. If you trigger it manually while a scheduled run is already in progress, the new run will queue and start automatically once the current one finishes.
 
 **Stop Airflow:**
 

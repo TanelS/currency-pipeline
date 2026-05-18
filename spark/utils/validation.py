@@ -75,10 +75,15 @@ def _append_errors(df: DataFrame, error_cols: list) -> DataFrame:
     """Merges new error expressions into _validation_errors without overwriting errors from prior validate calls."""
     if not error_cols:
         return df
-    new_errors = F.concat_ws('; ', *error_cols)
+    # Each error_col is the result of build_error_column: F.concat_ws(', ', *whens).
+    # For a valid row all when() arms are null, so concat_ws returns "" (not null).
+    # Wrapping with F.when(c != '', c) converts those empty strings back to null so
+    # the outer concat_ws does not produce "; ; ; ; ; ;" artefacts.
+    non_empty = [F.when(c != '', c) for c in error_cols]
+    new_errors = F.concat_ws('; ', *non_empty)
     if '_validation_errors' in df.columns:
         existing = F.when(F.col('_validation_errors') != '', F.col('_validation_errors'))
-        return df.withColumn('_validation_errors', F.concat_ws('; ', existing, new_errors))
+        return df.withColumn('_validation_errors', F.concat_ws('; ', existing, F.when(new_errors != '', new_errors)))
     return df.withColumn('_validation_errors', new_errors)
 
 

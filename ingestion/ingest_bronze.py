@@ -53,7 +53,7 @@ def ingest_curr_codes(spark: SparkSession) -> Optional[DataFrame]:
             .mode("overwrite")
             .save(out_path)
         )
-    except Exception as e:
+    except Exception:
         logger.exception('An error occurred during currency codes ingestion from CurrencyBeacon API')
         print('Currency codes ingestion failed. Check logs for details.')
         return None
@@ -152,7 +152,7 @@ def ingest_rates(spark: SparkSession) -> Optional[DataFrame]:
 
         print("  Done. Bronze currency rates table written.")
         return df_with_meta
-    except Exception as e:
+    except Exception:
         logger.exception(f'Failed to write Bronze Delta to {out_path}')
         print('Currency rates ingestion failed. Check logs for details.')
         return None
