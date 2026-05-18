@@ -84,7 +84,7 @@ AIRFLOW_UID=50000
 ```
 
 > [!IMPORTANT]
-> `RUNNING_LOCAL` and `RUNNING_AWS` cannot both be `true`. The pipeline will raise an error if they are.
+> `RUNNING_LOCAL` and `RUNNING_AWS` cannot both be `True`. The pipeline will raise an error if they are.
 
 **3. Build the Docker image:**
 
@@ -113,6 +113,9 @@ docker compose build
 | 2. Silver | `transformation/transform_silver.py` | S3 `bronze/` | S3 `silver/currencies/`, `silver/rates/` (Delta Lake) |
 | 3. Staging | `scripts/load_silver_to_postgres.py` | S3 `silver/` | PostgreSQL `public.currencies_stage`, `public.rates_stage` |
 | 4. Gold | dbt models | PostgreSQL staging tables | PostgreSQL `gold.dim_currencies`, `gold.dim_date`, `gold.fact_rates` |
+
+> [!IMPORTANT]
+> Options A and B run the pipeline in whichever mode is set in `.env`. With the default settings (`RUNNING_AWS=True`) all data is read from and written to AWS S3. To run fully locally without AWS, set `RUNNING_LOCAL=True` and `RUNNING_AWS=False` — data will be stored under `/app/data/` inside the container instead.
 
 **Start the database first:**
 
@@ -362,12 +365,12 @@ airflow/
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-**5. Add to `.env`:**
+**5. Set the Fernet key in `.env`:**
+
+`AIRFLOW_PROJ_DIR` and `AIRFLOW_UID` are already in `.env-dummy` with correct defaults. Only `FERNET_KEY` needs to be filled in with the value generated above:
 
 ```env
 FERNET_KEY=your-generated-fernet-key
-AIRFLOW_PROJ_DIR=./airflow
-AIRFLOW_UID=50000
 ```
 
 #### Running Airflow
@@ -463,4 +466,4 @@ Rules are defined in `conf/base/parameters.yml`. Key constraints:
 - **EMR Serverless not used** — Spark runs in `local[*]` mode on the developer's machine. EMR Serverless is not available on the AWS free tier; in a production setup it would be the natural managed execution layer for the Spark jobs.
 - **PostgreSQL stands in for Redshift** — in a production pipeline the Gold layer (star schema) would live in Amazon Redshift, a columnar data warehouse optimised for analytical queries at scale. The dimensional model (`dim_currencies`, `dim_date`, `fact_rates`) is exactly the structure Redshift is designed for. PostgreSQL is used here as a cost-free equivalent; the dbt models would transfer to Redshift with only a `profiles.yml` connection change. Redshift is a paid AWS service not available on the free tier.
 - **Glue and Athena are managed via AWS Console only** — the PyCharm AWS Toolkit does not support Glue catalog or Athena. The Glue tables (Bronze and Silver) were created manually in the console and are not managed from the repository. As a result the repo is partially detached from the AWS catalog layer — the pipeline writes Delta Lake files to S3 correctly, but Glue table definitions and Athena queries exist outside the codebase. Infrastructure-as-code tooling (e.g. AWS CDK or Terraform) would be the proper solution to manage these as part of the project.
-- The CurrencyBeacon free tier returns ~161 currencies. Ingesting each as a base produces ~25,921 rate pairs per run.
+- The CurrencyBeacon free tier returns ~161 currencies. Ingesting each as a base produces ~25,760 rate pairs per run (161 × 160, self-pairs excluded).
