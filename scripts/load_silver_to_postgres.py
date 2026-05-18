@@ -2,6 +2,7 @@ import logging
 import os
 
 import psycopg
+from psycopg.errors import UndefinedTable
 
 from db import JDBC_URL, conn_string, jdbc_props
 from spark.config.spark_config import SILVER_DIR
@@ -22,7 +23,7 @@ def load_currencies_to_stage(spark) -> None:
 
     print("Writing currencies to staging table...")
 
-    # Drop FK-s before jdbc write
+    # Drop FK-s before jdbc write (rates_stage may not exist on first run)
     try:
         with psycopg.connect(conn_string) as conn:
             with conn.cursor() as cursor:
@@ -33,6 +34,8 @@ def load_currencies_to_stage(spark) -> None:
                     "ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS curr_fk"
                 )  # noqa
             conn.commit()
+    except UndefinedTable:
+        pass
     except Exception:
         logger.exception("Failed to drop foreign key constraints")
 

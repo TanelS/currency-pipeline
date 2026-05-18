@@ -147,6 +147,10 @@ def transform_rates(spark: SparkSession) -> None:
     df_rates_valid = df_rates_validated.filter(col('_validation_errors') == '')
     df_rates_quarantine = df_rates_validated.filter(col('_validation_errors') != '')
 
+    # Two concurrent runs sharing the same _ingested_at second produce duplicate
+    # (curr_base, currency, rate_date) rows after the max_ingested_at filter.
+    df_rates_valid = df_rates_valid.dropDuplicates(["curr_base", "currency", "rate_date"])
+
     print('Valid rates:')
     df_rates_valid.show()
 
