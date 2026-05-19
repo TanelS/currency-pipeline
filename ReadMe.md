@@ -1,6 +1,6 @@
 # Currency Rates Pipeline — Spark + dbt + AWS S3
 
-A data pipeline that fetches currency exchange rates from the [CurrencyBeacon API](https://currencybeacon.com/), processes them through a Medallion architecture (Bronze → Silver → Gold), and materialises a star-schema data warehouse in PostgreSQL.
+An **ELT** pipeline that fetches currency exchange rates from the [CurrencyBeacon API](https://currencybeacon.com/) and processes them through a Medallion architecture (Bronze → Silver → Gold), materialising a star-schema data warehouse in PostgreSQL. Raw data is loaded to S3 first and kept permanently in the Bronze layer — transformations happen after storage, not before. If a validation rule or model turns out to be wrong, the pipeline can be reprocessed from Bronze without re-fetching from the source. This matters in production: API calls can be rate-limited, costly, or slow, and fetching from operational databases adds load on systems that are not meant for bulk reads. Keeping the raw layer means the source is called exactly once per run; everything downstream is derived from what was already captured.
 
 Built with **Apache Spark + Delta Lake** for the ingestion and transformation layers, **dbt** for the Gold layer, and **AWS S3** as the storage backend for Bronze and Silver layers.
 
