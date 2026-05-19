@@ -26,7 +26,7 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 ## Prerequisites
 
 - Docker & Docker Compose
-- CurrencyBeacon API key (free tier is sufficient)
+- CurrencyBeacon API key — register at [currencybeacon.com](https://currencybeacon.com) (free tier is sufficient). The free **Developer Sandbox** plan gives 5,000 requests/month with hourly data updates. The pipeline makes ~162 requests per run (1 for `/currencies` + ~161 for `/latest?base=...`), so the free tier supports roughly 30 runs per month — enough for the default once-daily schedule, though a 31-day month at daily cadence will hit the cap.
 - AWS account (free tier is sufficient — only S3 is required by the pipeline) with an IAM user that has S3 read/write access
 - An S3 bucket in your preferred region
 
@@ -165,13 +165,17 @@ docker compose run --remove-orphans spark dbt run --project-dir dbt/ --profiles-
 
 ## AWS Glue Catalog Setup
 
-The Bronze and Silver layers are queryable via Amazon Athena once the Glue catalog tables are created manually in the AWS Console. This is a one-time setup per environment.
+The Bronze and Silver layers are stored as Delta Lake, which consists of Parquet data files plus a `_delta_log/` transaction log directory. AWS Glue has no native Delta Lake support and cannot parse the transaction log — it cannot crawl these tables automatically. The tables must therefore be created manually in the AWS Console, defined as **Parquet** format and pointed directly at the S3 prefix. Athena then reads the underlying Parquet files directly, bypassing the Delta transaction log entirely.
 
-Go to **AWS Glue → Databases → movies_db → Add table** for each table below.
+This is a one-time setup per environment.
 
-> **Note:** The database is named `movies_db` for historical reasons — it was created during initial Glue exploration. The name has no functional impact.
+First, create a **Glue database** if you don't have one: go to **AWS Glue → Data Catalog → Databases → Add database**. A Glue database is not a real database — it is a logical namespace in the Data Catalog used to group related table definitions. Name it something descriptive, e.g. `currency_pipeline`.
 
-> **Note:** Select **Parquet** as the data format for all four tables. This allows Athena to read the underlying Parquet files directly. See Assumptions & Decisions for the known limitation of this approach.
+> **Note:** The reference setup in this repo used a database named `movies_db` — a leftover from initial Glue exploration. Use a more descriptive name for your own setup; the name has no functional impact on the pipeline.
+
+Then go to **AWS Glue → Data Catalog → Tables → Add table** and create each of the four tables below inside your database.
+
+> **Note:** Select **Parquet** as the data format for all four tables. See Assumptions & Decisions for the known limitation of this approach (no Delta time travel or snapshot isolation via Athena).
 
 ### bronze_currencies
 
@@ -215,13 +219,39 @@ Go to **AWS Glue → Databases → movies_db → Add table** for each table belo
 
 **S3 path:** `s3://your-bucket/silver/currencies/`
 
-Same schema as `bronze_currencies` above.
+```json
+[
+  {"Name": "id", "Type": "int"},
+  {"Name": "name", "Type": "string"},
+  {"Name": "short_code", "Type": "string"},
+  {"Name": "code", "Type": "string"},
+  {"Name": "precision", "Type": "int"},
+  {"Name": "subunit", "Type": "int"},
+  {"Name": "symbol", "Type": "string"},
+  {"Name": "symbol_first", "Type": "boolean"},
+  {"Name": "decimal_mark", "Type": "string"},
+  {"Name": "thousands_separator", "Type": "string"},
+  {"Name": "_ingested_at", "Type": "timestamp"},
+  {"Name": "_source_file", "Type": "string"},
+  {"Name": "_batch_id", "Type": "string"}
+]
+```
 
 ### silver_rates
 
 **S3 path:** `s3://your-bucket/silver/rates/`
 
-Same schema as `bronze_rates` above.
+```json
+[
+  {"Name": "curr_base", "Type": "string"},
+  {"Name": "currency", "Type": "string"},
+  {"Name": "rate_date", "Type": "timestamp"},
+  {"Name": "rate", "Type": "decimal(20,10)"},
+  {"Name": "_ingested_at", "Type": "timestamp"},
+  {"Name": "_source_file", "Type": "string"},
+  {"Name": "_batch_id", "Type": "string"}
+]
+```
 
 ---
 
@@ -410,6 +440,166 @@ docker compose -f docker-compose.airflow.yml down
 
 ---
 
+## Migrating to a Full AWS Stack (paid tier)
+
+The pipeline currently uses `local[*]` Spark on the developer's machine, PostgreSQL for the Gold layer, and a locally-hosted Airflow. With access to AWS paid services the natural migration path is:
+
+| Current | AWS equivalent |
+|---------|---------------|
+| `local[*]` Spark in Docker | EMR Serverless |
+| PostgreSQL (Gold layer) | Amazon Redshift |
+| Local Airflow (Docker Compose) | Amazon MWAA |
+| IAM user access keys in `.env` | IAM execution roles (no keys) |
+
+The Bronze and Silver layers (S3 + Delta Lake) and all pipeline Python scripts remain unchanged. The changes are in how jobs are submitted, where the Gold layer is hosted, and how Airflow is run.
+
+### 1. Eliminate the manual Glue table setup
+
+The manual Glue table creation (see [AWS Glue Catalog Setup](#aws-glue-catalog-setup)) exists because the Glue Crawler cannot parse Delta Lake files written by local Spark. On EMR Serverless you can configure the Spark session to use the **Glue Data Catalog as the Delta Lake metastore**. Delta Lake then writes table metadata directly into Glue on every job run — no Crawler, no manual table definitions.
+
+Add to `spark/session/builder.py`:
+
+```python
+.config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+.config("spark.hadoop.hive.metastore.client.factory.class",
+        "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory")
+```
+
+Athena supports querying Delta tables registered this way natively (as of late 2023), so you get full Delta semantics — including time travel — rather than the Parquet-only view the current workaround provides.
+
+### 2. Package the pipeline for EMR Serverless
+
+EMR Serverless runs the PySpark scripts from S3, not from a local Docker mount. Two approaches:
+
+**Option A — virtual environment archive (simpler)**
+
+Package all pipeline dependencies into a `.venv.tar.gz` and upload to S3:
+
+```bash
+pip install venv-pack
+python -m venv pyspark-env
+source pyspark-env/bin/activate
+pip install -r requirements.txt
+venv-pack -o pyspark-env.tar.gz
+aws s3 cp pyspark-env.tar.gz s3://your-bucket/emr/pyspark-env.tar.gz
+```
+
+Upload the source code as a zip too:
+```bash
+zip -r pipeline.zip ingestion/ transformation/ scripts/ spark/ utils/ conf/ config.py
+aws s3 cp pipeline.zip s3://your-bucket/emr/pipeline.zip
+```
+
+**Option B — container image (mirrors the current Docker setup)**
+
+Tag and push the existing `pipeline-spark` image to ECR:
+
+```bash
+aws ecr create-repository --repository-name pipeline-spark
+docker tag pipeline-spark:latest <account>.dkr.ecr.<region>.amazonaws.com/pipeline-spark:latest
+aws ecr get-login-password | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
+docker push <account>.dkr.ecr.<region>.amazonaws.com/pipeline-spark:latest
+```
+
+EMR Serverless supports custom container images since EMR 6.9 — use `applicationConfiguration` in the job run to point at the ECR image.
+
+### 2. Update the Airflow DAG
+
+Replace `DockerOperator` with `EmrServerlessStartJobRunOperator`. The DAG structure, schedule, and task order stay the same.
+
+```python
+from airflow.providers.amazon.aws.operators.emr import EmrServerlessStartJobRunOperator
+
+bronze = EmrServerlessStartJobRunOperator(
+    task_id="ingest_bronze",
+    application_id="<your-emr-serverless-application-id>",
+    execution_role_arn="arn:aws:iam::<account>:role/EMRServerlessExecutionRole",
+    job_driver={
+        "sparkSubmit": {
+            "entryPoint": "s3://your-bucket/emr/pipeline.zip",
+            "entryPointArguments": [],
+            "sparkSubmitParameters": (
+                "--conf spark.submit.pyFiles=s3://your-bucket/emr/pipeline.zip "
+                "--conf spark.archives=s3://your-bucket/emr/pyspark-env.tar.gz#environment "
+                "--conf spark.emr-serverless.driverEnv.PYSPARK_DRIVER_PYTHON=./environment/bin/python "
+                "--conf spark.executorEnv.PYSPARK_PYTHON=./environment/bin/python"
+            ),
+        }
+    },
+    configuration_overrides={
+        "monitoringConfiguration": {
+            "s3MonitoringConfiguration": {"logUri": "s3://your-bucket/emr-logs/"}
+        }
+    },
+)
+```
+
+All required AWS credentials (`AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, etc.) should move from `.env` into Airflow Connections, and be referenced via `aws_conn_id` in the operator — no credentials in files.
+
+### 3. Switch the Gold layer to Redshift
+
+The dbt models (`dim_currencies`, `dim_date`, `fact_rates`) require no changes. Only the adapter and connection change.
+
+**Install `dbt-redshift`** instead of `dbt-postgres`:
+
+```bash
+pip install dbt-redshift
+```
+
+In `pyproject.toml`, replace `dbt-postgres` with `dbt-redshift`.
+
+**Update `dbt/profiles.yml`:**
+
+```yaml
+currency_pipeline:
+  target: prod
+  outputs:
+    prod:
+      type: redshift
+      host: <cluster-endpoint>.redshift.amazonaws.com
+      port: 5439
+      user: "{{ env_var('DB_USERNAME') }}"
+      password: "{{ env_var('DB_PASSWORD') }}"
+      dbname: "{{ env_var('DB_DATABASE') }}"
+      schema: gold
+      threads: 4
+```
+
+The staging load script (`scripts/load_silver_to_postgres.py`) must also target Redshift. The JDBC URL changes from `postgresql` to `redshift`:
+
+```python
+jdbc_url = f"jdbc:redshift://{host}:{port}/{database}"
+```
+
+Add the Redshift JDBC driver to the Spark session configuration in `spark/session/builder.py`:
+
+```python
+.config("spark.jars", "/path/to/redshift-jdbc42.jar")
+```
+
+### 4. Migrate Airflow to MWAA (optional)
+
+If you do not want to self-host Airflow, Amazon MWAA manages the scheduler, workers, and web server.
+
+1. Create an MWAA environment in the AWS Console pointing at an S3 bucket for DAGs.
+2. Upload the DAG file: `aws s3 cp airflow/dags/currency_pipeline.py s3://your-bucket/dags/`
+3. MWAA workers run on AWS — the `DockerOperator` pattern (Docker-in-Docker) no longer applies. Use `EmrServerlessStartJobRunOperator` (as above) or `ECSOperator` (if using Fargate containers).
+4. Required Python packages (e.g. `apache-airflow-providers-amazon`) are declared in a `requirements.txt` uploaded to the same S3 bucket.
+
+MWAA does not replace the pipeline execution itself — it only replaces the local Airflow scheduler and worker. The Spark jobs still need to run somewhere (EMR Serverless or ECS).
+
+### 5. IAM roles
+
+In production, access keys in `.env` are replaced by IAM roles attached to the execution environment:
+
+- **EMR Serverless** — attach a job execution role with `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` on the pipeline bucket. No `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` needed.
+- **MWAA** — attach an execution role with permissions to invoke EMR Serverless, read DAGs from S3, and write logs.
+- **Lambda** — existing health-check function already uses an execution role; no change needed.
+
+The pipeline code uses `boto3` / `s3a://` paths — both pick up credentials from the environment automatically, whether that is a role or explicit keys. No code changes are required when switching from key-based to role-based auth.
+
+---
+
 ## Architecture
 
 | Diagram | Description |
@@ -462,8 +652,9 @@ Rules are defined in `conf/base/parameters.yml`. Key constraints:
 - **PostgreSQL staging tables** — act as the interface between Spark and dbt so that dbt does not need Delta Lake support.
 - **dbt incremental models** for `dim_date` and `fact_rates` — repeated runs do not reprocess existing data.
 - **Quarantine rather than drop** — invalid rows are preserved for debugging. Further quarantine processing pipelines are outside of the project scope right now.
-- **Athena queries Bronze/Silver as Parquet, not native Delta** — Glue catalog tables for Bronze and Silver layers are registered as Parquet format. Athena reads the underlying Parquet files directly, bypassing the Delta transaction log. This means Athena does not benefit from Delta's time travel or snapshot isolation — it reads all Parquet files present in the folder. Full Delta Lake support via the Athena Delta connector is a future improvement.
+- **Athena queries Bronze/Silver as Parquet, not native Delta** — Glue catalog tables for Bronze and Silver layers are registered as Parquet format. Athena reads the underlying Parquet files directly, bypassing the Delta transaction log. This means Athena does not benefit from Delta's time travel or snapshot isolation — it reads all Parquet files present in the folder. The root cause is that the Glue Crawler cannot parse the Delta Lake transaction log (`_delta_log/`) from files written by local Spark. On EMR Serverless this limitation does not apply: configuring the Spark session to use the Glue Data Catalog as the Delta metastore causes Delta Lake to register table metadata directly in Glue on write, so Athena can query the tables as native Delta Lake without any manual setup.
 - **EMR Serverless not used** — Spark runs in `local[*]` mode on the developer's machine. EMR Serverless is not available on the AWS free tier; in a production setup it would be the natural managed execution layer for the Spark jobs.
+- **Databricks not used** — Databricks has first-class Delta Lake support (it was created there) and would eliminate the Glue Parquet workaround entirely: Bronze and Silver tables are queryable via Databricks SQL without any catalog hacks. Databricks Community Edition (the free tier) was considered but has two blockers for this use case: it has no job scheduling (the Jobs/Workflows feature is paid-only), and clusters auto-terminate after inactivity, causing a 2–3 minute cold start on every pipeline run. Since the project already has an AWS setup and a working local execution path, adding Databricks as a third execution environment would add complexity without a clear benefit.
 - **PostgreSQL stands in for Redshift** — in a production pipeline the Gold layer (star schema) would live in Amazon Redshift, a columnar data warehouse optimised for analytical queries at scale. The dimensional model (`dim_currencies`, `dim_date`, `fact_rates`) is exactly the structure Redshift is designed for. PostgreSQL is used here as a cost-free equivalent; the dbt models would transfer to Redshift with only a `profiles.yml` connection change. Redshift is a paid AWS service not available on the free tier.
 - **Glue and Athena are managed via AWS Console only** — the PyCharm AWS Toolkit does not support Glue catalog or Athena. The Glue tables (Bronze and Silver) were created manually in the console and are not managed from the repository. As a result the repo is partially detached from the AWS catalog layer — the pipeline writes Delta Lake files to S3 correctly, but Glue table definitions and Athena queries exist outside the codebase. Infrastructure-as-code tooling (e.g. AWS CDK or Terraform) would be the proper solution to manage these as part of the project.
 - The CurrencyBeacon free tier returns ~161 currencies. Ingesting each as a base produces ~25,760 rate pairs per run (161 × 160, self-pairs excluded).
