@@ -77,6 +77,7 @@ RUNNING_AWS=True
 AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_S3_BUCKET=your_aws_s3_bucket_name
+AWS_REGION=your_aws_region
 
 FERNET_KEY=your-generated-fernet-key
 AIRFLOW_PROJ_DIR=./airflow
