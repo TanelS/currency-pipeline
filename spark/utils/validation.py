@@ -1,7 +1,7 @@
 import html
 import re
 import unicodedata
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
@@ -37,7 +37,7 @@ def clean_string(s: Union[str, int, float, None]) -> Union[str, int, float, None
 
     return s if s else None
 
-
+# User Defined Function
 clean_string_udf = udf(clean_string, StringType())  # slower than native functions when dealing with large datasets
 
 
@@ -98,19 +98,19 @@ def clean_string_df(df: DataFrame, columns: List[str]) -> DataFrame:
             cleaned_df = cleaned_df.withColumn(
                 col_name,
                 F.when(F.trim(F.col(col_name)) == "", None)
-                .otherwise(clean_string_udf(F.col(col_name)))
+                .otherwise(clean_string_udf(F.col(col_name)))  # run through user-defined function
             )
     return cleaned_df
 
 
-def validate_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
+def validate_df(df: DataFrame, columns: List[str], rules: Dict[str, dict]) -> DataFrame:
     """Validates columns against configured rules; accumulates into _validation_errors."""
     error_cols = []
     for col_name in columns:
         if col_name in df.columns:
             col_rules = rules.get(col_name)
             if col_rules:
-                result = build_error_column(col_name, col_rules)
+                result = build_error_column(col_name, dict(col_rules))
                 if result is not None:
                     error_cols.append(result)
     return _append_errors(df, error_cols)

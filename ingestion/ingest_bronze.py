@@ -82,8 +82,8 @@ def ingest_rates(spark: SparkSession) -> Optional[DataFrame]:
     rate_rows = []
 
     for base_c in codes:
-        target_symbols = codes - {base_c}
-        target_symbols_str = ",".join(target_symbols)
+        target_symbols = codes - {base_c}  # avoid currency rates with itself like EUR-EUR which equals 1
+        target_symbols_str = ",".join(target_symbols)  # for CurrencyBeacon API to fetch all at once as one long string
 
         print(f"Processing base currency: {base_c}")
 
@@ -109,6 +109,8 @@ def ingest_rates(spark: SparkSession) -> Optional[DataFrame]:
                         "rate": Decimal(str(rate)) if rate is not None else None,
                     }
                 )
+            # 'rate_date' is with seconds precision which leads later to many dim values. Maybe
+            # use minute-precision later?
         else:
             logger.warning(f'No rates for base currency "{base_c}"')
 
@@ -146,7 +148,7 @@ def ingest_rates(spark: SparkSession) -> Optional[DataFrame]:
             )
             .write.format("delta")
             .mode("append")
-            .partitionBy("curr_base")
+            .partitionBy("curr_base")  # Spark creates a separate folder per 'curr_base' value
             .save(out_path)
         )
 

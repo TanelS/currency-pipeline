@@ -51,7 +51,9 @@ def transform_currencies(spark: SparkSession) -> None:
     print('Cleaning currencies dataframe ...')
 
     df_curr_cleaned = clean_string_df(df_curr, curr_string_cols)
-    df_curr_cleaned = df_curr_cleaned.withColumn('code', F.lpad(F.col('code'), 3, '0'))
+    df_curr_cleaned = df_curr_cleaned.withColumn('code', F.lpad(F.col('code'), 3, '0'))  # pad code here with zeros
+
+    # do a bunch of validations here
     df_curr_int_validated = validate_df(df_curr_cleaned, curr_int_cols, currency_rules)
     df_curr_bool_validated = validate_df(df_curr_int_validated, curr_bool_cols, currency_rules)
     df_curr_validated = validate_df(df_curr_bool_validated, curr_string_cols, currency_rules)
@@ -119,7 +121,7 @@ def transform_rates(spark: SparkSession) -> None:
 
     print(f'Latest ingested_at: {max_ingested_at}')
 
-    df_rates = df_rates.repartition(4)
+    df_rates = df_rates.repartition(4)  # 4 is for local, for AWS it should be number-of-cores * 2
 
     # We discard all non ISO 4217 currencies:
     df_rates = df_rates.join(iso_4217_currencies, df_rates.curr_base == iso_4217_currencies.short_code, 'inner').drop('short_code')
