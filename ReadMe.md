@@ -21,6 +21,13 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 | Gold layer | dbt-postgres |
 | Orchestration | Apache Airflow 3.2.1 (Docker Compose), DockerOperator |
 
+> [!TIP]
+>
+> If you do not have an AWS account or do not have time to set up the Glue catalog, the pipeline can be run fully locally:
+> 1. In `.env` set `RUNNING_LOCAL=True` and `RUNNING_AWS=False`
+> 2. Leave all `AWS_*` fields empty
+> 3. Follow the regular setup and running steps below — Bronze and Silver layers will be written to `./data/` on your machine instead of S3, and the AWS Glue setup section can be skipped
+
 ---
 
 ## Prerequisites
