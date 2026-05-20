@@ -15,14 +15,7 @@ from pyspark.sql.types import (
 
 from spark.config.spark_config import BRONZE_OUT_DIR, SILVER_DIR
 from spark.session.builder import get_spark
-from spark.utils.validation import (
-    clean_string_df,
-    validate_boolean_df,
-    validate_decimal_df,
-    validate_int_df,
-    validate_string_df,
-    validate_timestamp_df,
-)
+from spark.utils.validation import clean_string_df, validate_df
 
 logger = logging.getLogger('transform-silver')
 
@@ -59,9 +52,9 @@ def transform_currencies(spark: SparkSession) -> None:
 
     df_curr_cleaned = clean_string_df(df_curr, curr_string_cols)
     df_curr_cleaned = df_curr_cleaned.withColumn('code', F.lpad(F.col('code'), 3, '0'))
-    df_curr_int_validated = validate_int_df(df_curr_cleaned, curr_int_cols, currency_rules)
-    df_curr_bool_validated = validate_boolean_df(df_curr_int_validated, curr_bool_cols, currency_rules)
-    df_curr_validated = validate_string_df(df_curr_bool_validated, curr_string_cols, currency_rules)
+    df_curr_int_validated = validate_df(df_curr_cleaned, curr_int_cols, currency_rules)
+    df_curr_bool_validated = validate_df(df_curr_int_validated, curr_bool_cols, currency_rules)
+    df_curr_validated = validate_df(df_curr_bool_validated, curr_string_cols, currency_rules)
     df_curr_validated.show()
 
     df_currencies_valid = df_curr_validated.filter(col('_validation_errors') == '')
@@ -140,9 +133,9 @@ def transform_rates(spark: SparkSession) -> None:
     rates_decimal_cols = [f.name for f in df_rates.schema.fields if f.dataType == DecimalType()]
 
     df_rates_cleaned = clean_string_df(df_rates, rates_string_cols)
-    df_rates_timestamp_validated = validate_timestamp_df(df_rates_cleaned, rates_timestamp_cols, rates_rules)
-    df_rates_decimal_validated = validate_decimal_df(df_rates_timestamp_validated, rates_decimal_cols, rates_rules)
-    df_rates_validated = validate_string_df(df_rates_decimal_validated, rates_string_cols, rates_rules)
+    df_rates_timestamp_validated = validate_df(df_rates_cleaned, rates_timestamp_cols, rates_rules)
+    df_rates_decimal_validated = validate_df(df_rates_timestamp_validated, rates_decimal_cols, rates_rules)
+    df_rates_validated = validate_df(df_rates_decimal_validated, rates_string_cols, rates_rules)
 
     df_rates_valid = df_rates_validated.filter(col('_validation_errors') == '')
     df_rates_quarantine = df_rates_validated.filter(col('_validation_errors') != '')

@@ -103,60 +103,8 @@ def clean_string_df(df: DataFrame, columns: List[str]) -> DataFrame:
     return cleaned_df
 
 
-def validate_int_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
-    """Validates integer columns against required/min/max rules; accumulates into _validation_errors."""
-    error_cols = []
-    for col_name in columns:
-        if col_name in df.columns:
-            col_rules = rules.get(col_name)
-            if col_rules:
-                result = build_error_column(col_name, col_rules)
-                if result is not None:
-                    error_cols.append(result)
-    return _append_errors(df, error_cols)
-
-
-def validate_timestamp_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
-    """Validates timestamp columns against required/min_date rules; accumulates into _validation_errors."""
-    error_cols = []
-    for col_name in columns:
-        if col_name in df.columns:
-            col_rules = rules.get(col_name)
-            if col_rules:
-                result = build_error_column(col_name, col_rules)
-                if result is not None:
-                    error_cols.append(result)
-    return _append_errors(df, error_cols)
-
-
-def validate_boolean_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
-    """Validates boolean columns against the required rule; accumulates into _validation_errors."""
-    error_cols = []
-    for col_name in columns:
-        if col_name in df.columns:
-            col_rules = rules.get(col_name)
-            if col_rules:
-                result = build_error_column(col_name, col_rules)
-                if result is not None:
-                    error_cols.append(result)
-    return _append_errors(df, error_cols)
-
-
-def validate_string_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
-    """Validates string columns against required/length rules; accumulates into _validation_errors."""
-    error_cols = []
-    for col_name in columns:
-        if col_name in df.columns:
-            col_rules = rules.get(col_name)
-            if col_rules:
-                result = build_error_column(col_name, col_rules)
-                if result is not None:
-                    error_cols.append(result)
-    return _append_errors(df, error_cols)
-
-
-def validate_decimal_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
-    """Validates decimal columns against required/min_rate_value/max_rate_value rules; accumulates into _validation_errors."""
+def validate_df(df: DataFrame, columns: List[str], rules: dict) -> DataFrame:
+    """Validates columns against configured rules; accumulates into _validation_errors."""
     error_cols = []
     for col_name in columns:
         if col_name in df.columns:
