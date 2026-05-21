@@ -18,7 +18,7 @@ cutoff_date AS (
     SELECT MAX(d2.date) as cutoff_date
     FROM {{ this }} f
     JOIN dates d2 ON f.date_key = d2.date_key
-),
+), -- placement of the comma here is important!
 {% endif %}
 
 final AS (
