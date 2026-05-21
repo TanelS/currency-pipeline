@@ -29,3 +29,17 @@ jobs:
 
       - name: Run Ruff
         run: ruff check . --exit-zero
+
+  dbt:
+    name: Validate dbt models
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dbt
+        run: pip install dbt-postgres
+
+      - name: Run dbt parse
+        run: dbt parse --project-dir dbt/ --profiles-dir dbt/
