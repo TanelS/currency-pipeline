@@ -25,12 +25,13 @@ def get_spark(appname: str) -> SparkSession:
             .config("spark.hadoop.fs.s3a.access.key", config.AWS_ACCESS_KEY_ID)
             .config("spark.hadoop.fs.s3a.secret.key", config.AWS_SECRET_ACCESS_KEY)
             .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
-            .config("spark.hadoop.fs.s3a.region", "eu-north-1")
+            .config("spark.hadoop.fs.s3a.region", config.AWS_REGION)
         )
 
     elif config.RUNNING_LOCAL:
         builder = builder.master("local[*]").config(
             "spark.jars.packages",
-            "io.delta:delta-spark_2.12:3.1.0,org.postgresql:postgresql:42.7.3",
+            "io.delta:delta-spark_2.12:3.1.0,"
+            "org.postgresql:postgresql:42.7.3",
         )
     return builder.getOrCreate()
