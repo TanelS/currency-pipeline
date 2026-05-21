@@ -458,8 +458,26 @@ The pipeline currently uses `local[*]` Spark on the developer's machine, Postgre
 | PostgreSQL (Gold layer) | Amazon Redshift |
 | Local Airflow (Docker Compose) | Amazon MWAA |
 | IAM user access keys in `.env` | IAM execution roles (no keys) |
+| `.env` secrets file | AWS Secrets Manager |
 
 The Bronze and Silver layers (S3 + Delta Lake) and all pipeline Python scripts remain unchanged. The changes are in how jobs are submitted, where the Gold layer is hosted, and how Airflow is run.
+
+AWS Secrets Manager would replace the `.env` file entirely — API keys, database passwords, and other credentials are stored in AWS and fetched at runtime by `config.py` via `boto3`, with access controlled by IAM roles. Example:
+
+```python
+import boto3, json
+
+def get_secret(secret_name: str) -> dict:
+    client = boto3.client("secretsmanager")  # region resolved automatically from IAM role context
+    response = client.get_secret_value(SecretId=secret_name)
+    return json.loads(response["SecretString"])
+
+secrets = get_secret("currency-pipeline/prod")
+CURRENCYBEACON_API_KEY = secrets["CURRENCYBEACON_API_KEY"]
+DATABASE_PASSWORD = secrets["DB_PASSWORD"]
+```
+
+No `.env` file, no credentials in the codebase. The service's IAM execution role grants access to Secrets Manager — no access keys needed anywhere.
 
 ### 1. Eliminate the manual Glue table setup
 
