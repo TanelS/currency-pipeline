@@ -7,6 +7,7 @@ BUCKET = os.environ.get("AWS_S3_BUCKET")  # must be set manually in Lambda envir
 PREFIXES = ["bronze/", "silver/"]
 
 # a demo Lambda function to check the health of the data pipeline by inspecting S3 layer prefixes.
+# Written by Clude AI.
 
 def lambda_handler(event, context):
     """

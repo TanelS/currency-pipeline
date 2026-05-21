@@ -47,6 +47,7 @@ RUNNING_AWS = config_environment["RUNNING_AWS"].lower() in ("1", "true", "yes")
 AWS_ACCESS_KEY_ID = config_environment["AWS_ACCESS_KEY_ID"]
 AWS_SECRET_ACCESS_KEY = config_environment["AWS_SECRET_ACCESS_KEY"]
 AWS_S3_BUCKET = config_environment["AWS_S3_BUCKET"]
+AWS_REGION = config_environment["AWS_REGION"]
 
 # Actually Spark code uses those too, so the prefix DBT_ is just arbitrary:
 DBT_POSTGRES_HOST = config_environment["DBT_POSTGRES_HOST"]
