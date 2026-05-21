@@ -10,11 +10,16 @@
 }}
 
 WITH dates AS (
-    SELECT
-       date_key,
-       date
-    FROM {{ ref('dim_date') }}
+    SELECT date_key, date FROM {{ ref('dim_date') }}
 ),
+
+{% if is_incremental() %}
+cutoff_date AS (
+    SELECT MAX(d2.date) as cutoff_date
+    FROM {{ this }} f
+    JOIN dates d2 ON f.date_key = d2.date_key
+),
+{% endif %}
 
 final AS (
     SELECT
@@ -26,11 +31,7 @@ final AS (
     LEFT JOIN dates d ON r.rate_date = d.date
 
     {% if is_incremental() %}
-    WHERE r.rate_date > (
-        SELECT MAX(d2.date)
-        FROM {{ this }} f
-        JOIN {{ ref('dim_date') }} d2 ON f.date_key = d2.date_key
-    )
+    WHERE r.rate_date > (SELECT cutoff_date FROM cutoff_date)
     {% endif %}
 )
 
