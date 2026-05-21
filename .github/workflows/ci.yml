@@ -5,13 +5,27 @@ on:
     branches: [main, develop]
 
 jobs:
-  build:
-    name: Build Docker image
+#  build:
+#    name: Build Docker image
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Build pipeline-spark image
+#        run: docker compose build
+
+  lint:
+    name: Lint with Ruff
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build pipeline-spark image
-        run: docker compose build
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: ruff check . --exit-zero
