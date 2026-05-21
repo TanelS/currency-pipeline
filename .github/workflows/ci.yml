@@ -33,6 +33,12 @@ jobs:
   dbt:
     name: Validate dbt models
     runs-on: ubuntu-latest
+    env:
+      DB_USERNAME: ci
+      DB_PASSWORD: ci
+      DB_HOST: ci
+      DB_PORT: "5432"
+      DB_NAME: ci
 
     steps:
       - name: Checkout code
