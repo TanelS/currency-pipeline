@@ -127,13 +127,13 @@ def transform_rates(spark: SparkSession) -> None:
     df_rates = df_rates.join(iso_4217_currencies, df_rates.curr_base == iso_4217_currencies.short_code, 'inner').drop('short_code')
     df_rates = df_rates.join(iso_4217_currencies, df_rates.currency == iso_4217_currencies.short_code, 'inner').drop('short_code')
 
-
     print(f'Read {df_rates.count()} currency rates rows')
 
     rates_string_cols = [f.name for f in df_rates.schema.fields if f.dataType == StringType()]
     rates_timestamp_cols = [f.name for f in df_rates.schema.fields if f.dataType == TimestampType()]
     rates_decimal_cols = [f.name for f in df_rates.schema.fields if f.dataType == DecimalType()]
 
+    # validation and cleaning
     df_rates_cleaned = clean_string_df(df_rates, rates_string_cols)
     df_rates_timestamp_validated = validate_df(df_rates_cleaned, rates_timestamp_cols, rates_rules)
     df_rates_decimal_validated = validate_df(df_rates_timestamp_validated, rates_decimal_cols, rates_rules)
@@ -183,11 +183,9 @@ def transform_rates(spark: SparkSession) -> None:
         print(f'Quarantined {quar_rates_count} rates saved to: {silver_path_quarantine_rates}')
 
 
-
 if __name__ == '__main__':
     spark = get_spark("silver_currency_stuff")
     spark.sparkContext.setLogLevel("WARN")
 
     transform_currencies(spark)
     transform_rates(spark)
-

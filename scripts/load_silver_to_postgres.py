@@ -39,10 +39,11 @@ def load_currencies_to_stage(spark) -> None:
     except Exception:
         logger.exception("Failed to drop foreign key constraints")
 
-    writer = df.write.mode("overwrite").option("truncate", "true")
+    writer = df.write.mode("overwrite").option("truncate", "true")  # truncate here means that constraints are preserved
     writer.jdbc(JDBC_URL, "public.currencies_stage", properties=jdbc_props)
     print("===  Currencies stage table loaded.")
 
+    # Drop PK and re-add PK just in case when PK does not survive after Spark/JDBC:
     with psycopg.connect(conn_string) as conn:
         try:
             with conn.cursor() as cursor:
@@ -66,9 +67,7 @@ def load_rates_to_stage(spark) -> None:
     df.show()
 
     print("Writing rates to stage table...")
-    writer = (
-        df.write.mode("overwrite").option("truncate", "true").option("batchsize", 10000)
-    )
+    writer = (df.write.mode("overwrite").option("truncate", "true").option("batchsize", 10000))
     writer.jdbc(JDBC_URL, "public.rates_stage", properties=jdbc_props)
 
     print("===  Rates stage table loaded.")
@@ -77,10 +76,10 @@ def load_rates_to_stage(spark) -> None:
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS base_fk"
+                    "ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS base_fk" # defensive, base_fk was already dropped in load_currencies_to_stage()
                 )
                 cursor.execute(
-                    "ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS curr_fk"
+                    "ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS curr_fk"  # defensive, curr_fk was already dropped in load_currencies_to_stage()
                 )
                 cursor.execute(
                     "ALTER TABLE public.rates_stage DROP CONSTRAINT IF EXISTS rates_stage_pkey"
