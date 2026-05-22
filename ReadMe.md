@@ -8,11 +8,11 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 >
 > **Note on AI usage**
 >
-> AI assistance (Claude) was used throughout this project as a learning tool and mentor — providing guidance on project structure, explaining concepts, and helping debug issues.
+> AI assistance (Claude) was used throughout this project as a learning tool and mentor — explaining concepts, suggesting approaches, and helping debug issues. Every AI-generated piece of code was reviewed line by line, questioned, and argued over until the logic and syntax were understood. After enough back-and-forth, the boundary between "AI wrote this" and "I wrote this" becomes genuinely blurry.
 >
-> An exception: Claude generated a complete reference project (`est-address-pipeline` based on In-ADS [dataset](https://geoportaal.maaamet.ee/eng/spatial-data/address-data-p313.html)) at the start, which I studied line by line before building this pipeline myself.
+> Some parts are clearly AI-generated: the Spark session builder (`spark/session/builder.py`) uses Java-style chained configuration that is hard to write from memory; the Airflow DAG, Mermaid diagrams, tests, CI workflow, and Python docstrings were also produced by AI. The overall architecture, medallion layer design, ingestion and transformation logic, dbt models, and most of the README reflect my own decisions.
 >
-> The following parts were written or substantially rewritten by AI: the Airflow DAG (`airflow/dags/currency_pipeline.py`), the Silver layer validation logic (`spark/utils/validation.py`), Mermaid diagrams, and Python docstrings. Core pipeline logic, ingestion, transformation, dbt models, and the overall architecture were written by me.
+> Before starting, Claude generated a complete reference project (`est-address-pipeline` based on the In-ADS [dataset](https://geoportaal.maaamet.ee/eng/spatial-data/address-data-p313.html)), which I studied line by line before building this pipeline.
 
 | Layer | Technology |
 |-------|-----------|
@@ -34,14 +34,16 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 
 - Docker & Docker Compose
 - CurrencyBeacon API key — register at [currencybeacon.com](https://currencybeacon.com) (free tier is sufficient). The free **Developer Sandbox** plan gives 5,000 requests/month with hourly data updates. The pipeline makes ~162 requests per run (1 for `/currencies` + ~161 for `/latest?base=...`), so the free tier supports roughly 30 runs per month — enough for the default once-daily schedule, though a 31-day month at daily cadence will hit the cap.
-- AWS account (free tier is sufficient — only S3 is required by the pipeline) with an IAM user that has S3 read/write access
+- AWS account (free tier is sufficient — only S3 is required by the pipeline) with an IAM user that has S3 read/write access *(not required if running locally — see the tip above)*
 - An S3 bucket in your preferred region
 
 ---
 
 ## Setup
 
-**1. Install dependencies:**
+**1. Install dependencies (optional — for IDE code intelligence only):**
+
+The pipeline runs entirely inside Docker containers, so you do not need a local Python environment to run it. `uv sync` is only needed if you want your IDE to resolve imports and show type hints.
 
    with `uv` ( [install instructions](https://docs.astral.sh/uv/getting-started/installation/))
 
@@ -49,7 +51,7 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 uv sync
 ```
 
-`uv sync` installs a local virtual environment for IDE code intelligence only — the pipeline itself runs entirely inside Docker containers. Dependency versions are pinned to match `apache/spark:3.5.5`; you do not need to run the scripts locally.
+Dependency versions are pinned to match `apache/spark:3.5.5`.
 
 **2. Copy the environment template and fill in your values:**
 
@@ -84,7 +86,7 @@ RUNNING_AWS=True
 AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_S3_BUCKET=your_aws_s3_bucket_name
-AWS_REGION=your_aws_region
+AWS_REGION=your_aws_region        # e.g. eu-north-1, us-east-1
 
 FERNET_KEY=your-generated-fernet-key
 AIRFLOW_PROJ_DIR=./airflow
@@ -103,7 +105,7 @@ AIRFLOW_UID=50000
 >
 > On Apple Silicon Mac the pipeline run takes ages if that line is not commented out!
 
-after that run:
+Then run:
 
 ```bash
 docker compose build
@@ -132,6 +134,8 @@ docker compose up -d postgres
 ```
 
 ### Option A — single command
+
+`run_pipeline.sh` runs Bronze, Silver, and the staging load in sequence. `run_dbt.sh` runs the dbt Gold models. They are equivalent to the individual steps in Option B.
 
 ```bash
 bash scripts/run_pipeline.sh
@@ -168,6 +172,19 @@ docker compose run --remove-orphans spark dbt run --project-dir dbt/ --profiles-
 ```
 
 > Spark UI is available at **http://localhost:4040** while a job is running.
+
+---
+
+## Notebooks
+
+Two Jupyter notebooks are provided for exploring the pipeline data outside of Spark:
+
+| Notebook | Description |
+|----------|-------------|
+| `notebooks/currencies_local.ipynb` | Reads Bronze and Silver Delta Lake tables from the local `./data/` directory. Requires the pipeline to have been run with `RUNNING_LOCAL=True`. |
+| `notebooks/currencies_aws.ipynb` | Reads Bronze and Silver Delta Lake tables directly from S3 using PyArrow. Requires `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET`, and `AWS_REGION` to be set in `.env`. |
+
+Both notebooks use `pandas` + `PyArrow` for reading — no Spark session needed. Quarantine tables are handled gracefully: if the prefix does not exist in S3 (or locally), a message is printed instead of raising an error.
 
 ---
 
@@ -529,7 +546,7 @@ docker push <account>.dkr.ecr.<region>.amazonaws.com/pipeline-spark:latest
 
 EMR Serverless supports custom container images since EMR 6.9 — use `applicationConfiguration` in the job run to point at the ECR image.
 
-### 2. Update the Airflow DAG
+### 3. Update the Airflow DAG
 
 Replace `DockerOperator` with `EmrServerlessStartJobRunOperator`. The DAG structure, schedule, and task order stay the same.
 
@@ -562,7 +579,7 @@ bronze = EmrServerlessStartJobRunOperator(
 
 All required AWS credentials (`AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, etc.) should move from `.env` into Airflow Connections, and be referenced via `aws_conn_id` in the operator — no credentials in files.
 
-### 3. Switch the Gold layer to Redshift
+### 4. Switch the Gold layer to Redshift
 
 The dbt models (`dim_currencies`, `dim_date`, `fact_rates`) require no changes. Only the adapter and connection change.
 
@@ -603,7 +620,7 @@ Add the Redshift JDBC driver to the Spark session configuration in `spark/sessio
 .config("spark.jars", "/path/to/redshift-jdbc42.jar")
 ```
 
-### 4. Migrate Airflow to MWAA (optional)
+### 5. Migrate Airflow to MWAA (optional)
 
 If you do not want to self-host Airflow, Amazon MWAA manages the scheduler, workers, and web server.
 
@@ -614,7 +631,7 @@ If you do not want to self-host Airflow, Amazon MWAA manages the scheduler, work
 
 MWAA does not replace the pipeline execution itself — it only replaces the local Airflow scheduler and worker. The Spark jobs still need to run somewhere (EMR Serverless or ECS).
 
-### 5. IAM roles
+### 6. IAM roles
 
 In production, access keys in `.env` are replaced by IAM roles attached to the execution environment:
 
@@ -667,6 +684,25 @@ Rules are defined in `conf/base/parameters.yml`. Key constraints:
 - Rates must be between 0.000001 and 100,000,000
 - Rate dates must be ≥ 2019-01-01
 - Required fields checked for null / empty
+
+---
+
+## Tests & CI
+
+Unit tests for the validation logic live in `tests/test_validation.py`. They cover `build_error_column` (all rule types), `_append_errors` (accumulation and no separator artifacts on valid rows), and `validate_df`. Tests use a local PySpark session — no Delta Lake or S3 needed.
+
+```bash
+pytest tests/ -v
+```
+
+GitHub Actions runs three jobs on every push to `develop` (CI is intentionally not triggered on `main` — all development happens on `develop` and is merged only after CI passes):
+
+| Job | What it does |
+|-----|-------------|
+| `lint` | Runs `ruff check .` — fails the build if lint errors are found (no auto-fix) |
+| `dbt` | Runs `dbt parse` — validates all dbt model SQL and YAML without a database connection |
+| `test` | Runs `pytest tests/` with PySpark 3.5.5 and Java 17 |
+| ~~`build`~~ | Docker image build — disabled to conserve free-tier GitHub Actions minutes |
 
 ---
 
