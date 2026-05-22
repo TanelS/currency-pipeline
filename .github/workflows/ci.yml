@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+#  build:
+#    name: Build Docker image
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Build pipeline-spark image
+#        run: docker compose build
+
+  lint:
+    name: Lint with Ruff
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: ruff check .
+
+  dbt:
+    name: Validate dbt models
+    runs-on: ubuntu-latest
+    env:
+      DB_USERNAME: ci
+      DB_PASSWORD: ci
+      DB_HOST: ci
+      DB_PORT: "5432"
+      DB_DATABASE: ci
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dbt
+        run: pip install dbt-postgres
+
+      - name: Run dbt parse
+        run: dbt parse --project-dir dbt/ --profiles-dir dbt/
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install dependencies
+        run: pip install pyspark==3.5.5 pytest
+
+      - name: Run tests
+        run: pytest tests/ -v

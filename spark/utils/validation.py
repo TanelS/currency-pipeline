@@ -57,10 +57,10 @@ def build_error_column(col_name: str, rules: dict) -> Optional[Column]:
                 F.lit(f'{col_name} must be later than "{rules["min_date"]}"'),
             )
         )
-    if rules.get('max_rate_value'):
+    if rules.get('max_rate_value') is not None:
         errors.append(F.when(F.col(col_name) > rules['max_rate_value'],
                              F.lit(f'{col_name} must be less than {rules["max_rate_value"]}')))
-    if rules.get('min_rate_value'):
+    if rules.get('min_rate_value') is not None:
         errors.append(F.when(F.col(col_name) < rules['min_rate_value'],
                              F.lit(f'{col_name} must be more than {rules["min_rate_value"]}')))
     if rules.get('length'):
