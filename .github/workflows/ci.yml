@@ -28,7 +28,7 @@ jobs:
         run: pip install ruff
 
       - name: Run Ruff
-        run: ruff check . --exit-zero
+        run: ruff check .
 
   dbt:
     name: Validate dbt models
@@ -38,7 +38,7 @@ jobs:
       DB_PASSWORD: ci
       DB_HOST: ci
       DB_PORT: "5432"
-      DB_NAME: ci
+      DB_DATABASE: ci
 
     steps:
       - name: Checkout code
@@ -70,7 +70,7 @@ jobs:
           java-version: "17"
 
       - name: Install dependencies
-        run: pip install pyspark pytest
+        run: pip install pyspark==3.5.5 pytest
 
       - name: Run tests
         run: pytest tests/ -v
