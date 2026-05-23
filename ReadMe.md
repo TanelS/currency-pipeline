@@ -165,11 +165,28 @@ docker compose run --remove-orphans -p 4040:4040 spark python3 transformation/tr
 docker compose run --remove-orphans -p 4040:4040 spark python3 scripts/load_silver_to_postgres.py
 ```
 
+**Snapshot — update SCD Type 2 dimension history**
+
+```bash
+docker compose run --remove-orphans spark dbt snapshot --project-dir dbt/ --profiles-dir dbt/
+```
+
 **Gold — run dbt dimensional models**
 
 ```bash
 docker compose run --remove-orphans spark dbt run --project-dir dbt/ --profiles-dir dbt/
 ```
+
+> **Full refresh** — if the Gold layer needs to be rebuilt from scratch after schema changes, run with `--full-refresh`:
+>
+> ```bash
+> docker compose run --remove-orphans spark dbt run --full-refresh --project-dir dbt/ --profiles-dir dbt/
+> ```
+>
+> This drops and rebuilds all Gold tables in dependency order. Bronze and Silver data in S3 is not affected.
+>
+> [!WARNING]
+> `--full-refresh` causes data loss in `dim_date`. Because `rates_stage` is always overwritten with the current run's data only, a full refresh of `dim_date` can only repopulate dates from the latest pipeline run — all historical dates from previous runs are lost. In a production DW you would never do a full refresh on a growing dimension; you would migrate in place. Use `--full-refresh` only when a schema change makes it unavoidable, and re-run the pipeline several times afterwards to rebuild date history.
 
 > Spark UI is available at **http://localhost:4040** while a job is running.
 
@@ -454,6 +471,11 @@ docker compose -f docker-compose.airflow.yml up -d
 
 Airflow UI is available at **http://localhost:8080** (default credentials: `airflow` / `airflow`).
 
+DAGs are paused by default on first start. To activate the pipeline:
+1. Open the UI and find `currency_pipeline` in the DAG list
+2. Toggle the pause switch on the left to unpause it — the DAG will now run on its daily schedule
+3. To trigger a run immediately without waiting for the schedule, click the **Trigger DAG** (▶) button on the right
+
 > [!NOTE]
 > The DAG is configured with `max_active_runs=1`. If you trigger it manually while a scheduled run is already in progress, the new run will queue and start automatically once the current one finishes.
 
@@ -674,6 +696,43 @@ Quarantine tables (`silver/currencies_quarantine`, `silver/rates_quarantine`) re
 
 `fact_rates` references `dim_currencies` twice (base and target currency) and `dim_date`. Both dimension models are incremental; full re-runs are safe.
 
+#### SCD Type 2 join consideration
+
+`dim_currencies` uses SCD Type 2 via `dbt snapshot`. If a currency's attributes ever change, a new version row is added — meaning the same `currency_key` (`short_code`) can appear multiple times with different `valid_from`/`valid_to` ranges. A plain join on `currency_key` alone would then fan out and duplicate fact rows.
+
+The correct pattern when querying is to filter by the valid time range:
+
+```sql
+SELECT f.rate, f.rate_date, c.name, c.symbol
+FROM fact_rates f
+JOIN dim_date d ON f.date_key = d.date_key
+JOIN dim_currencies c
+    ON f.currency = c.currency_key
+    AND d.date BETWEEN c.valid_from AND COALESCE(c.valid_to, '9999-12-31')
+```
+
+The textbook fix is a **surrogate key** — an auto-generated integer that uniquely identifies each version row. `fact_rates` would store the surrogate instead of `short_code`, making the join unambiguous without any time-range filter:
+
+```sql
+-- dim_currencies with surrogate key
+SELECT
+    {{ dbt_utils.generate_surrogate_key(['short_code', 'dbt_valid_from']) }} AS currency_sk,
+    short_code AS currency_key,
+    ...
+FROM {{ ref('currencies_snapshot') }}
+
+-- fact_rates storing surrogate
+SELECT
+    c.currency_sk AS currency_sk,
+    ...
+FROM rates r
+JOIN dim_currencies c
+    ON r.currency = c.currency_key
+    AND r.rate_date BETWEEN c.valid_from AND COALESCE(c.valid_to, '9999-12-31')
+```
+
+Implementing surrogate keys would require adding `currency_sk` to `dim_currencies`, rewriting `fact_rates` to resolve and store it at load time, and updating all dbt relationship tests. In practice, ISO 4217 currency codes are among the most stable standards in existence — a code change is extraordinarily rare — so the fan-out risk here is theoretical rather than real. The current model uses `short_code` as the natural key and leaves the time-range join responsibility to the consuming query.
+
 ---
 
 ## Validation
@@ -712,7 +771,7 @@ GitHub Actions runs three jobs on every push to `develop` (CI is intentionally n
 - **AWS S3 as storage backend** — Bronze and Silver layers are stored as Delta Lake tables in S3. The Spark code is cloud-agnostic; the storage path is the only environment-specific setting.
 - **Spark runs locally** — the pipeline uses `local[*]` mode, meaning Spark runs on the developer's machine while data is written to S3. This keeps the setup self-contained without requiring a managed Spark cluster.
 - **PostgreSQL staging tables** — act as the interface between Spark and dbt so that dbt does not need Delta Lake support.
-- **dbt incremental models** for `dim_date` and `fact_rates` — repeated runs do not reprocess existing data.
+- **dbt incremental models** for `dim_date` and `fact_rates` — repeated runs do not reprocess existing data. `dim_date` grows over time as each daily run adds a new date entry; however, because `rates_stage` is always overwritten with the latest run only, a `--full-refresh` wipes historical dates that cannot be recovered without re-running the full pipeline for each past date. In a production setup `rates_stage` would retain history, making full refreshes safe.
 - **Quarantine rather than drop** — invalid rows are preserved for debugging. Further quarantine processing pipelines are outside of the project scope right now.
 - **Athena queries Bronze/Silver as Parquet, not native Delta** — Glue catalog tables for Bronze and Silver layers are registered as Parquet format. Athena reads the underlying Parquet files directly, bypassing the Delta transaction log. This means Athena does not benefit from Delta's time travel or snapshot isolation — it reads all Parquet files present in the folder. The root cause is that the Glue Crawler cannot parse the Delta Lake transaction log (`_delta_log/`) from files written by local Spark. On EMR Serverless this limitation does not apply: configuring the Spark session to use the Glue Data Catalog as the Delta metastore causes Delta Lake to register table metadata directly in Glue on write, so Athena can query the tables as native Delta Lake without any manual setup.
 - **EMR Serverless not used** — Spark runs in `local[*]` mode on the developer's machine. EMR Serverless is not available on the AWS free tier; in a production setup it would be the natural managed execution layer for the Spark jobs.
@@ -720,4 +779,5 @@ GitHub Actions runs three jobs on every push to `develop` (CI is intentionally n
 - **PostgreSQL stands in for Redshift** — in a production pipeline the Gold layer (star schema) would live in Amazon Redshift, a columnar data warehouse optimised for analytical queries at scale. The dimensional model (`dim_currencies`, `dim_date`, `fact_rates`) is exactly the structure Redshift is designed for. PostgreSQL is used here as a cost-free equivalent; the dbt models would transfer to Redshift with only a `profiles.yml` connection change. Redshift is a paid AWS service not available on the free tier.
 - **Glue and Athena are managed via AWS Console only** — the PyCharm AWS Toolkit does not support Glue catalog or Athena. The Glue tables (Bronze and Silver) were created manually in the console and are not managed from the repository. As a result the repo is partially detached from the AWS catalog layer — the pipeline writes Delta Lake files to S3 correctly, but Glue table definitions and Athena queries exist outside the codebase. Infrastructure-as-code tooling (e.g. AWS CDK or Terraform) would be the proper solution to manage these as part of the project.
 - **No alerting configured** — pipeline failures are visible in the Airflow UI but no notifications are sent. In production, Airflow's `on_failure_callback` would trigger email or Slack alerts on task failure. Manual monitoring via the Airflow UI is required in the current setup.
+- **dbt version constrained to 1.8.7** — the base Docker image `apache/spark:3.5.5` ships with Python 3.8. dbt Core 1.9+ requires Python 3.10+, so upgrading is not possible without replacing the base image. As a result, the legacy `.sql`-based snapshot syntax is used for the `dim_currencies` SCD Type 2 snapshot rather than the newer YAML-based format introduced in dbt 1.9.
 - The CurrencyBeacon free tier returns ~161 currencies. Ingesting each as a base produces ~25,760 rate pairs per run (161 × 160, self-pairs excluded).

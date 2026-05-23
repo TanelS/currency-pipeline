@@ -28,7 +28,7 @@ final AS (
         r.currency,
         r.rate
     FROM {{ source('silver', 'rates_stage') }} r
-    LEFT JOIN dates d ON r.rate_date = d.date
+    LEFT JOIN dates d ON date_trunc('minute', r.rate_date) = d.date
 
     {% if is_incremental() %}
     WHERE r.rate_date > (SELECT cutoff_date FROM cutoff_date)
