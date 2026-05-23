@@ -21,6 +21,8 @@ flowchart LR
         RS[rates_stage]
     end
 
+    SNAP[("currencies_snapshot\nSCD Type 2")]
+
     subgraph Gold["Gold (dbt · PostgreSQL)"]
         DC[dim_currencies]
         DD[dim_date]
@@ -35,7 +37,7 @@ flowchart LR
     BR -.->|invalid| SQ2
     SC --> CS
     SR --> RS
-    CS --> DC
+    CS --> SNAP --> DC
     RS --> DD
     RS --> FR
     DC -.->|FK| FR
