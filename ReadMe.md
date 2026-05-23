@@ -34,8 +34,13 @@ Built with **Apache Spark + Delta Lake** for the ingestion and transformation la
 
 - Docker & Docker Compose
 - CurrencyBeacon API key — register at [currencybeacon.com](https://currencybeacon.com) (free tier is sufficient). The free **Developer Sandbox** plan gives 5,000 requests/month with hourly data updates. The pipeline makes ~162 requests per run (1 for `/currencies` + ~161 for `/latest?base=...`), so the free tier supports roughly 30 runs per month — enough for the default once-daily schedule, though a 31-day month at daily cadence will hit the cap.
-- AWS account (free tier is sufficient — only S3 is required by the pipeline) with an IAM user that has S3 read/write access *(not required if running locally — see the tip above)*
-- An S3 bucket in your preferred region
+- AWS account (free tier is sufficient — only S3 is required by the pipeline) with an IAM user and its access keys (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) *(not required if running locally — see the tip above)*. This project uses an IAM user with `AdministratorAccess` for development simplicity. In production this would be replaced by an IAM execution role scoped to only the following S3 permissions on the pipeline bucket:
+  - `s3:PutObject` — writing Bronze and Silver Delta Lake files
+  - `s3:GetObject` — reading between layers
+  - `s3:DeleteObject` — required by Delta Lake for compaction and vacuum
+  - `s3:ListBucket` — listing objects and checking prefixes
+  - `s3:GetBucketLocation` — required by the S3 client on session init
+- An S3 bucket in your preferred region — must be created before running the pipeline. See the [Terraform](#terraform) section for a minimal example of provisioning it.
 
 ---
 
@@ -316,6 +321,41 @@ It is not part of the pipeline execution. To use it: create a Lambda function in
 
 ---
 
+## Terraform
+
+> [!IMPORTANT]
+> **The Terraform code in this repository is a portfolio demonstration only. It has no practical value for running this project.** The S3 bucket must already exist before the pipeline can run — and a reviewer cannot reuse the bucket name from `terraform.tfvars` since S3 bucket names are globally unique. They would need to pick their own name, create the bucket, and set it in both `terraform.tfvars` and `.env` manually. Terraform saves no steps here; it just shows familiarity with Infrastructure-as-Code tooling.
+
+In theory, Terraform could be more useful for automating the AWS Glue Catalog setup (databases, table definitions for Bronze and Silver layers). However, Glue requires a significant number of IAM permissions to manage via API, and the initial AWS account and IAM user setup still has to be done through the AWS Console regardless — so the practical gain would still be limited.
+
+The `terraform/terraform.lock.hcl` is committed to pin the exact provider version. `terraform/terraform.tfvars` is gitignored — it holds credentials and the bucket name.
+
+**Install Terraform:**
+
+- **macOS:** `brew install terraform`
+- **Windows:** `winget install HashiCorp.Terraform` (or download from [developer.hashicorp.com/terraform/install](https://developer.hashicorp.com/terraform/install))
+- **Linux:** follow the [official install guide](https://developer.hashicorp.com/terraform/install) for your distro
+
+**Configure:**
+
+Copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars` and fill in your values:
+
+```hcl
+aws_region            = "eu-north-1"
+bucket_name           = "your_aws_s3_bucket_name"
+aws_access_key_id     = "your_aws_access_key"
+aws_secret_access_key = "your_aws_secret_access_key"
+```
+
+```bash
+cd terraform
+terraform init      # first time only — downloads the AWS provider
+terraform plan
+terraform apply
+```
+
+---
+
 ## Scheduling
 
 **AWS Step Functions** is the AWS-native orchestration alternative — a serverless workflow engine where the pipeline is defined as a state machine. It integrates natively with EMR, Lambda, and ECS. For this project it is not practical since the pipeline runs Spark jobs in Docker, which Step Functions cannot invoke directly. In a production deployment where Spark runs on EMR, Step Functions would be the natural orchestration choice.
@@ -323,6 +363,20 @@ It is not part of the pipeline execution. To use it: create a Lambda function in
 ### Apache Airflow (local)
 
 **Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps to a task in a DAG (`airflow/dags/currency_pipeline.py`), with dependency management, retries, SLAs, and observability built in. Airflow runs locally via Docker Compose alongside the pipeline stack. The DAG runs as: `check_api_availability` (HttpSensor — confirms the CurrencyBeacon API is reachable before starting) → `ingest_bronze` → `transform_silver` → `load_to_postgres` → `run_dbt_snapshot` → `run_dbt`.
+
+#### Sensor
+
+The first task, `check_api_availability`, is an `HttpSensor` that pokes the CurrencyBeacon `/v1/status` endpoint before any pipeline work begins. It accepts HTTP 200 or 401 as success — 401 means the API is up but unauthenticated, which is sufficient to confirm reachability. If the API does not respond within 5 minutes the sensor times out and the DAG run fails, preventing a bronze ingestion attempt against an unavailable source. The sensor uses `mode='reschedule'` so it releases its Celery worker slot between pokes rather than holding it for the full timeout duration.
+
+The API connection is configured as an Airflow connection (`currencybeacon_api`) via the `AIRFLOW_CONN_CURRENCYBEACON_API` environment variable in `docker-compose.airflow.yml` — no manual connection setup in the UI required.
+
+#### XCom
+
+XCom is Airflow's mechanism for passing small values between tasks (job IDs, row counts, status flags). It is not used in this pipeline because there is nothing to share between tasks — each task reads its input from storage and writes its output to storage independently. Data flows through S3 and PostgreSQL, not through Airflow.
+
+#### Backfill
+
+`catchup=False` is set intentionally. The pipeline fetches the current exchange rates at run time — there is no historical data available from the API to backfill with. Running missed past intervals would just re-fetch today's rates and write duplicate data. If the pipeline misses a scheduled run, the next scheduled run picks up normally; no backfill is attempted.
 
 #### Operator choice — DockerOperator
 
