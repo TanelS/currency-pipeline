@@ -12,6 +12,9 @@ erDiagram
         boolean symbol_first
         varchar decimal_mark
         varchar thousands_separator
+        timestamp valid_from
+        timestamp valid_to
+        boolean is_current
     }
     dim_date {
         bigint date_key PK
