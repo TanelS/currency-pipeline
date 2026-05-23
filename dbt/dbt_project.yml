@@ -6,7 +6,8 @@ profile: 'currency_rates'
 
 model-paths:
   - models
-
+snapshot-paths:
+  - snapshots
 test-paths:
   - tests
 seed-paths:
