@@ -471,6 +471,11 @@ docker compose -f docker-compose.airflow.yml up -d
 
 Airflow UI is available at **http://localhost:8080** (default credentials: `airflow` / `airflow`).
 
+DAGs are paused by default on first start. To activate the pipeline:
+1. Open the UI and find `currency_pipeline` in the DAG list
+2. Toggle the pause switch on the left to unpause it — the DAG will now run on its daily schedule
+3. To trigger a run immediately without waiting for the schedule, click the **Trigger DAG** (▶) button on the right
+
 > [!NOTE]
 > The DAG is configured with `max_active_runs=1`. If you trigger it manually while a scheduled run is already in progress, the new run will queue and start automatically once the current one finishes.
 
@@ -690,6 +695,43 @@ Quarantine tables (`silver/currencies_quarantine`, `silver/rates_quarantine`) re
 | `fact_rates` | Fact | Exchange rate per base currency, target currency, and date |
 
 `fact_rates` references `dim_currencies` twice (base and target currency) and `dim_date`. Both dimension models are incremental; full re-runs are safe.
+
+#### SCD Type 2 join consideration
+
+`dim_currencies` uses SCD Type 2 via `dbt snapshot`. If a currency's attributes ever change, a new version row is added — meaning the same `currency_key` (`short_code`) can appear multiple times with different `valid_from`/`valid_to` ranges. A plain join on `currency_key` alone would then fan out and duplicate fact rows.
+
+The correct pattern when querying is to filter by the valid time range:
+
+```sql
+SELECT f.rate, f.rate_date, c.name, c.symbol
+FROM fact_rates f
+JOIN dim_date d ON f.date_key = d.date_key
+JOIN dim_currencies c
+    ON f.currency = c.currency_key
+    AND d.date BETWEEN c.valid_from AND COALESCE(c.valid_to, '9999-12-31')
+```
+
+The textbook fix is a **surrogate key** — an auto-generated integer that uniquely identifies each version row. `fact_rates` would store the surrogate instead of `short_code`, making the join unambiguous without any time-range filter:
+
+```sql
+-- dim_currencies with surrogate key
+SELECT
+    {{ dbt_utils.generate_surrogate_key(['short_code', 'dbt_valid_from']) }} AS currency_sk,
+    short_code AS currency_key,
+    ...
+FROM {{ ref('currencies_snapshot') }}
+
+-- fact_rates storing surrogate
+SELECT
+    c.currency_sk AS currency_sk,
+    ...
+FROM rates r
+JOIN dim_currencies c
+    ON r.currency = c.currency_key
+    AND r.rate_date BETWEEN c.valid_from AND COALESCE(c.valid_to, '9999-12-31')
+```
+
+Implementing surrogate keys would require adding `currency_sk` to `dim_currencies`, rewriting `fact_rates` to resolve and store it at load time, and updating all dbt relationship tests. In practice, ISO 4217 currency codes are among the most stable standards in existence — a code change is extraordinarily rare — so the fan-out risk here is theoretical rather than real. The current model uses `short_code` as the natural key and leaves the time-range join responsibility to the consuming query.
 
 ---
 
