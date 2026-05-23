@@ -46,10 +46,16 @@ with DAG(
         **COMMON,
     )
 
+    snapshot = DockerOperator(
+        task_id="run_dbt_snapshot",
+        command="bash -c \"set -a && source <(tr -d '\\r' < /app/.env) && set +a && dbt snapshot --project-dir dbt --profiles-dir dbt\"",
+        **COMMON,
+    )
+
     dbt = DockerOperator(
         task_id="run_dbt",
         command='bash -c "set -a && source <(tr -d \'\\r\' < /app/.env) && set +a && dbt run --project-dir dbt --profiles-dir dbt"',
         **COMMON,
     )
 
-    bronze >> silver >> load >> dbt
+    bronze >> silver >> load >> snapshot >> dbt

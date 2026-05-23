@@ -112,6 +112,17 @@ models:
           - not_null
       - name: thousands_separator
         description: "Currency thousands separator"
+      - name: valid_from
+        description: "Currency valid from"
+        tests:
+          - not_null
+      - name: valid_to
+        description: "Currency valid to — NULL for currently active records"
+      - name: is_current
+        description: "Currency is valid"
+        tests:
+          - not_null
+
   - name: fact_rates
     columns:
       - name: curr_base
