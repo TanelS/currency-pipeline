@@ -177,7 +177,18 @@ docker compose run --remove-orphans spark dbt snapshot --project-dir dbt/ --prof
 docker compose run --remove-orphans spark dbt run --project-dir dbt/ --profiles-dir dbt/
 ```
 
-> **Full refresh** — if the Gold layer needs to be rebuilt from scratch after schema changes, run with `--full-refresh`:
+> **Snapshot rebuild** — `dbt snapshot` does not support `--full-refresh`. To rebuild `currencies_snapshot` from scratch (e.g. after changing `check_cols`), drop the table manually in PostgreSQL first, then re-run the snapshot:
+>
+> ```sql
+> DROP TABLE public.currencies_snapshot;
+> ```
+> ```bash
+> docker compose run --remove-orphans spark dbt snapshot --project-dir dbt/ --profiles-dir dbt/
+> ```
+>
+> This wipes all SCD Type 2 history. All currencies will be re-inserted as new current records.
+
+> **Gold full refresh** — if the Gold layer needs to be rebuilt from scratch after schema changes, run with `--full-refresh`:
 >
 > ```bash
 > docker compose run --remove-orphans spark dbt run --full-refresh --project-dir dbt/ --profiles-dir dbt/
@@ -311,7 +322,7 @@ It is not part of the pipeline execution. To use it: create a Lambda function in
 
 ### Apache Airflow (local)
 
-**Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps to a task in a DAG (`airflow/dags/currency_pipeline.py`), with dependency management, retries, and observability built in. Airflow runs locally via Docker Compose alongside the pipeline stack.
+**Apache Airflow** is the intended orchestration tool for this pipeline. Each step maps to a task in a DAG (`airflow/dags/currency_pipeline.py`), with dependency management, retries, SLAs, and observability built in. Airflow runs locally via Docker Compose alongside the pipeline stack. The DAG runs as: `check_api_availability` (HttpSensor — confirms the CurrencyBeacon API is reachable before starting) → `ingest_bronze` → `transform_silver` → `load_to_postgres` → `run_dbt_snapshot` → `run_dbt`.
 
 #### Operator choice — DockerOperator
 

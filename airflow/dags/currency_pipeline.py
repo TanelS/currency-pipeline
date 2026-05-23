@@ -1,9 +1,11 @@
 import os
 from datetime import datetime, timedelta
 
-from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.providers.http.sensors.http import HttpSensor
 from docker.types import Mount
+
+from airflow import DAG
 
 PIPELINE_HOST_PATH = os.environ["PIPELINE_HOST_PATH"]
 IMAGE = "pipeline-spark"
@@ -35,10 +37,21 @@ with DAG(
     max_active_runs=1,
     default_args=default_args,
 ) as dag:
+    api_check = HttpSensor(
+        task_id="check_api_availability",
+        http_conn_id="currencybeacon_api",
+        endpoint="v1/status",
+        poke_interval=30,
+        timeout=300,
+        mode="reschedule",
+        extra_options={"check_response": False},
+        response_check=lambda response: response.status_code in [200, 401],
+    )
+
     bronze = DockerOperator(
         task_id="ingest_bronze",
         command="python3 ingestion/ingest_bronze.py",
-        sla=timedelta(minutes=10),
+        sla=timedelta(minutes=15),
         **COMMON,
     )
 
@@ -70,4 +83,4 @@ with DAG(
         **COMMON,
     )
 
-    bronze >> silver >> load >> snapshot >> dbt
+    api_check >> bronze >> silver >> load >> snapshot >> dbt
