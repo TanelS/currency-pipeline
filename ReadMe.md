@@ -384,7 +384,7 @@ Each pipeline task runs via **DockerOperator**, which instructs Docker to start 
 
 This design was chosen deliberately:
 
-- **Airflow stays thin** — the Airflow image only contains `apache-airflow-providers-docker`. No Spark, no Python pipeline deps, no dbt. The alternative (`SparkSubmitOperator` with `local[*]`) would require duplicating all Spark and dbt dependencies into the Airflow image.
+- **Airflow stays thin** — the Airflow image only contains `apache-airflow-providers-docker` and `apache-airflow-providers-http` (for the API sensor). No Spark, no Python pipeline deps, no dbt. The alternative (`SparkSubmitOperator` with `local[*]`) would require duplicating all Spark and dbt dependencies into the Airflow image.
 - **Spark container is the executor** — all pipeline logic runs in the same image used for manual runs. No divergence between scheduled and manual execution.
 - **Mirrors production** — on AWS, Airflow would use `ECSOperator` (run this container on ECS) or `KubernetesPodOperator`. `DockerOperator` is the local equivalent of the same pattern.
 
