@@ -5,7 +5,7 @@
         target_schema='public',
         unique_key='short_code',
         strategy='check',
-        check_cols='all'
+        check_cols=['name', 'code', 'precision', 'subunit', 'symbol', 'symbol_first', 'decimal_mark', 'thousands_separator']
     )
 }}
 
