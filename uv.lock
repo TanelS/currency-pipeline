@@ -690,6 +690,63 @@ wheels = [
 ]
 
 [[package]]
+name = "currency-pipeline"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "apache-airflow" },
+    { name = "apache-airflow-providers-apache-spark" },
+    { name = "apache-airflow-providers-docker" },
+    { name = "apache-airflow-providers-http" },
+    { name = "apache-airflow-providers-standard" },
+    { name = "boto3" },
+    { name = "cryptography" },
+    { name = "dbt-core" },
+    { name = "dbt-postgres" },
+    { name = "ipykernel" },
+    { name = "matplotlib" },
+    { name = "pandas" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pyarrow" },
+    { name = "pyspark" },
+    { name = "pytest" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "requests" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "apache-airflow", specifier = ">=3.2.1" },
+    { name = "apache-airflow-providers-apache-spark", specifier = ">=5.6.0" },
+    { name = "apache-airflow-providers-docker", specifier = ">=4.5.5" },
+    { name = "apache-airflow-providers-http", specifier = ">=4.0.0" },
+    { name = "apache-airflow-providers-standard", specifier = ">=1.13.0" },
+    { name = "boto3", specifier = ">=1.43.6" },
+    { name = "cryptography", specifier = ">=48.0.0" },
+    { name = "dbt-core", specifier = "==1.8.7" },
+    { name = "dbt-postgres", specifier = "==1.8.2" },
+    { name = "ipykernel", specifier = ">=7.2.0" },
+    { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "pandas", specifier = ">=3.0.1" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
+    { name = "pyarrow", specifier = ">=23.0.1" },
+    { name = "pyspark", specifier = "==3.5.5" },
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "requests", specifier = ">=2.32.5" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.15.12" }]
+
+[[package]]
 name = "cycler"
 version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1983,63 +2040,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/30/02/00fa585abfd9fe9d73e5f6e554dc36cc2b842898cbfc46d70353dae227f8/pillow-12.1.1-pp311-pypy311_pp73-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8089c852a56c2966cf18835db62d9b34fef7ba74c726ad943928d494fa7f4735", size = 5963343, upload-time = "2026-02-11T04:23:02.934Z" },
     { url = "https://files.pythonhosted.org/packages/f2/26/c56ce33ca856e358d27fda9676c055395abddb82c35ac0f593877ed4562e/pillow-12.1.1-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:cb9bb857b2d057c6dfc72ac5f3b44836924ba15721882ef103cecb40d002d80e", size = 7029880, upload-time = "2026-02-11T04:23:04.783Z" },
 ]
-
-[[package]]
-name = "pipedrive-test-task-aws"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "apache-airflow" },
-    { name = "apache-airflow-providers-apache-spark" },
-    { name = "apache-airflow-providers-docker" },
-    { name = "apache-airflow-providers-http" },
-    { name = "apache-airflow-providers-standard" },
-    { name = "boto3" },
-    { name = "cryptography" },
-    { name = "dbt-core" },
-    { name = "dbt-postgres" },
-    { name = "ipykernel" },
-    { name = "matplotlib" },
-    { name = "pandas" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "pyarrow" },
-    { name = "pyspark" },
-    { name = "pytest" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "requests" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "apache-airflow", specifier = ">=3.2.1" },
-    { name = "apache-airflow-providers-apache-spark", specifier = ">=5.6.0" },
-    { name = "apache-airflow-providers-docker", specifier = ">=4.5.5" },
-    { name = "apache-airflow-providers-http", specifier = ">=4.0.0" },
-    { name = "apache-airflow-providers-standard", specifier = ">=1.13.0" },
-    { name = "boto3", specifier = ">=1.43.6" },
-    { name = "cryptography", specifier = ">=48.0.0" },
-    { name = "dbt-core", specifier = "==1.8.7" },
-    { name = "dbt-postgres", specifier = "==1.8.2" },
-    { name = "ipykernel", specifier = ">=7.2.0" },
-    { name = "matplotlib", specifier = ">=3.10.8" },
-    { name = "pandas", specifier = ">=3.0.1" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
-    { name = "pyarrow", specifier = ">=23.0.1" },
-    { name = "pyspark", specifier = "==3.5.5" },
-    { name = "pytest", specifier = ">=9.0.3" },
-    { name = "python-dotenv", specifier = ">=1.2.2" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "requests", specifier = ">=2.32.5" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "ruff", specifier = ">=0.15.12" }]
 
 [[package]]
 name = "platformdirs"
